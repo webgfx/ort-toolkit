@@ -1,27 +1,38 @@
 
 // Get model via Origin Private File System
-async function getModelOPFS(name, url) {
+async function getModelOPFS(name, url, updateModel) {
   const root = await navigator.storage.getDirectory();
   let fileHandle;
-  let buffer;
-  try {
-    fileHandle = await root.getFileHandle(name);
-    const blob = await fileHandle.getFile();
-    buffer = await blob.arrayBuffer();
-  } catch(e) {
+
+  async function updateFile() {
     const response = await fetch(url);
-    buffer = await readResponse(response);
+    const buffer = await readResponse(response);
     fileHandle = await root.getFileHandle(name, {create: true});
     const writable = await fileHandle.createWritable();
     await writable.write(buffer);
     await writable.close();
+    return buffer;
   }
-  return buffer;
+
+  if (updateModel) {
+    return await updateFile();
+  }
+
+  try {
+    fileHandle = await root.getFileHandle(name);
+    const blob = await fileHandle.getFile();
+    return await blob.arrayBuffer();
+  } catch(e) {
+    return await updateFile();
+  }
 }
 
 // Get model via Cache API
-async function getModelCache(name, url) {
+async function getModelCache(name, url, updateModel) {
   const cache = await caches.open(name);
+  if (updateModel) {
+    await cache.add(url);
+  }
   let response = await cache.match(url);
   if (!response) {
     await cache.add(url);

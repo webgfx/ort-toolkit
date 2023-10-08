@@ -16,9 +16,11 @@
       inputs are not defined well.</li>
     <li>ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime
     <li>runTimes: Run times</li>
-    <li>warmupTimes: Warmup times</li>
     <li>tasks=[task0,task1,task2]: tasks to run, split by ','. Candidates are 'conformance', 'performance',
       'ortProfiling', 'webgpuProfiling'.</li>
+      <li>updateModel=[true|false]. False (default) means no update.</li>
+    <li>warmupTimes: Warmup times</li>
+    <li>wasmThreads: wasm threads number</li>
     <li>Example:
       https://wp-27.sh.intel.com/workspace/project/webatintel/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
     </li>
@@ -36,7 +38,7 @@
     'use strict';
 
     const ep = getParam('ep') || 'webgpu';
-    let device = getParam('device') || 'gpu';
+    const layout = getParam('layout') || 'NHWC';
     const modelName = getParam('modelName') || 'mobilenetv2-12';
     let modelUrl = getParam('modelUrl') || 'server';
     if (modelUrl === 'github') {
@@ -44,18 +46,20 @@
     } else if (modelUrl === 'server') {
       modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelName}.onnx`;
     }
-    const power = getParam('power') || 'default';
+    const ortUrl = getParam('ortUrl');
     let runTimes = getParam('runTimes') || 3;
     runTimes = parseInt(runTimes);
+    const tasks = getParam('tasks') || 'performance';
+    const updateModel = getParam('updateModel') === 'true' || false;
     let warmupTimes = getParam('warmupTimes') || 10;
     warmupTimes = parseInt(warmupTimes);
-    const tasks = getParam('tasks') || 'webgpuProfiling';
     const wasmThreads = parseInt(getParam('wasmThreads')) || 4;
-    const layout = getParam('layout') || 'NHWC';
 
     // for developers
+    let device = getParam('device') || 'gpu';
+    const power = getParam('power') || 'default';
     const keepConsole = getParam('keepConsole') === 'true' || false;
-    const ortUrl = getParam('ortUrl');
+
     const verbose = getParam('verbose') === 'true' || false;
 
     if (ep === 'webgpu') {
@@ -105,7 +109,7 @@
       let session;
 
       const getModelStartTime = performance.now();
-      const modelBuffer = await getModelCache(modelName, modelUrl);
+      const modelBuffer = await getModelOPFS(modelName, modelUrl, updateModel);
       const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
       console.info(`${elapsedTime}ms was used to get model`);
 
