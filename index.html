@@ -1,12 +1,22 @@
+<meta http-equiv="Permissions-Policy" content="interest-cohort=(), user-id=()" />
+
 <body>
   <h1 align='center'>ONNX Runtime Toolkit</h1>
   <h2 align='center' id='status'></h2>
   <text>
     <b>Usage</b>
-    <p>You need to start Chrome with "--enable-dawn-features=allow_unsafe_apis" to make webgpuProfiling work.</p>
-    <p>OPFS Explorer: https://chrome.google.com/webstore/detail/opfs-explorer/acndjpgkpaclldomagafnognkcgjignd</p>
-    <p>If you meet cross origin issue, you may install Chrome extension "CORS Unblock"
+    <p>Chrome options: '--enable-dawn-features=allow_unsafe_apis,use_dxc --enable-features=SharedArrayBuffer'</p>
+    <li>--enable-dawn-features=allow_unsafe_apis: Make timestamp query work</li>
+    <li>--enable-dawn-features=use_dxc: Enable DXC instead of FXC for WGSL compilation</li>
+    <li>--enable-features=SharedArrayBuffer: Enable SharedArrayBuffer otherwise you may get 'TypeError: Cannot convert a
+      BigInt value to a number'</li>
+
+    <p>If you encounter cross origin issue, you may install Chrome extension "CORS Unblock"
       (https://chrome.google.com/webstore/detail/cors-unblock/lfhmikememgdcahcdlaciloancbhjino?hl=en) and enable it.</p>
+
+    <p>To manage OPFS (Origin Private File System), you may install Chrome extension OPFS Explorer:
+      https://chrome.google.com/webstore/detail/opfs-explorer/acndjpgkpaclldomagafnognkcgjignd</p>
+
     <p>Some parameters are supported in url, and you may use them as 'index.html?key0=value0&key1=value1...'. Supported
       parameters are:</p>
     <li>ep: execution provider. E.g., webgpu, wasm</li>
@@ -18,7 +28,7 @@
     <li>runTimes: Run times</li>
     <li>tasks=[task0,task1,task2]: tasks to run, split by ','. Candidates are 'conformance', 'performance',
       'ortProfiling', 'webgpuProfiling'.</li>
-      <li>updateModel=[true|false]. False (default) means no update.</li>
+    <li>updateModel=[true|false]. False (default) means no update.</li>
     <li>warmupTimes: Warmup times</li>
     <li>wasmThreads: wasm threads number</li>
     <li>Example:
