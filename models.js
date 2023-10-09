@@ -13,10 +13,7 @@ const models = {
   'efficientnet-lite4-11': { 'images:0': ['float32', 'random', [1, 224, 224, 3]] }, // webnn
   'emotion-ferplus-8': { 'Input3': ['float32', 'random', [1, 1, 64, 64]] }, // webnn
   'gpt2': 'llm-decoder', // tjs/gpt2/onnx/decoder_model_merged.onnx. TODO: NaN
-  'mobilenetv2-7': 'img224', // obsolete
-  'mobilenetv2-10': 'img224', // obsolete
-  'mobilenetv2-12': 'img224', // webnn
-  'resnet50-v1-12': 'img224', // obsolete
+  'mobilenetv2-12': 'img224', // from teams
   'resnet50-v2-7': 'img224', // webnn
   't5-small-decoder': 't5-decoder', // tjs/t5-small/onnx/decoder_model_merged.onnx
   't5-small-encoder': 't5-encoder', // tjs/t5-small/onnx/encoder_model.onnx
@@ -25,58 +22,32 @@ const models = {
   'whisper-tiny-encoder': { 'input_features': ['float32', 'random', [1, 80, 3000]] }, // tjs/openai/whisper-tiny/onnx/encoder_model.onnx
 
 
-  // todo
+  // TODO
+  'm2m100-decoder': 'm2m100-decoder', // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx. TODO: RuntimeError: Aborted()
+  'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. TODO: RangeError: offset is out of bounds
 
-  'sam-h': {
-    'image_embeddings': ['float32', 0.5, [1, 3, 224, 224]],
-    'point_coords': ['float32', [327.1111, 426.875, 241.77777, 341.5], [1, 2, 2]],
-    'point_labels': ['float32', [0, 1], [1, 2]],
-    'mask_input': ['float32', 0, [1, 1, 256, 256]],
-    'has_mask_input': ['float32', 1, [1]],
-  },
-  'sam-h-decoder': 'sam-decoder', // sam/sam-h. TODO: conformance fails
+  'sam-b-decoder': 'sam-decoder', // sam/sam_vit_b-decoder.onnx. TODO: Need model
+  'sam-h-decoder-static': 'sam-decoder', // sam/segment-anything-vit-h-static-shapes-static.onnx. TODO: Need model
+  'sam-b-encoder': 'sam-encoder', // sam/sam_vit_b-encoder.onnx. TODO: Need model
 
-  'inception-v1-12': {
-    'data_0': ['float32', 0.5, [1, 3, 224, 224]],
-  },
-  'squeezenet1.1-7': {
-    'data': ['float32', 0.5, [1, 3, 224, 224]],
-  },
+  'sd-text-encoder': '',
+  'sd-unet': '',
+  'sd-vae-decoder': '',
+  'sd-vae-encoder': '',
 
-  // 't5-encoder-12'
-  'yolo': {
-    'image': ['float32', 0.5, [1, 3, 416, 416]],
-  },
+  // Obsolete
+  'mobilenetv2-7': 'img224',
+  'mobilenetv2-10': 'img224',
+  'resnet50-v1-12': 'img224',
 
-  // no corresponding models
-  'sam-h-xxx': {
-    'image_embeddings': ['float32', 0.5, [1, 256, 64, 64]],
-    'point_coords': ['float32', [327.1111, 426.875, 241.77777, 341.5], [1, 2, 2]],
-    'point_labels': ['float32', [0, 1], [1, 2]],
-    'mask_input': ['float32', 0, [1, 1, 256, 256]],
-    'has_mask_input': ['float32', 1, [1]],
-    // orig_im_size is optimized out for this model
-    //'orig_im_size': ['float32', [2], [1200., 1800.]],
-  },
-
-  // TODO: Convert to actual float16 values. We're just estimating perf with this one, not correctness.
-  'sam-h-16': {
-    'image_embeddings': ['float16', 0.5, [1, 256, 64, 64]],
-    'point_coords': ['float16', [327, 426, 241, 341], [1, 2, 2]],
-    'point_labels': ['float16', [0, 2], [1, 2]],
-    'mask_input': ['float16', 0, [1, 1, 256, 256]],
-    'has_mask_input': ['float16', 1, [1]],
-    // orig_im_size is optimized out for this model
-    //'orig_im_size': ['float16', [1200., 1800.], [2]],
-  },
 }
 
 function getFeeds(session, modelName) {
   let feeds = {};
   let inputs = models[modelName];
   let inputNames = session.inputNames;
-  let seqlen = 128;
-  let enc_seqlen = 128;
+  let decSeqLen = 128;
+  let encSeqLen = 128;
 
   if (['bart-large', 'bart-large-12'].indexOf(inputs) >= 0) {
     const kvdim = (modelName === 'bart-large') ? 16 : 12;
@@ -84,20 +55,20 @@ function getFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        feeds[v] = getTensor('float32', 1., [1, kvdim, seqlen, 64]);
+        feeds[v] = getTensor('float32', 1., [1, kvdim, decSeqLen, 64]);
       }
       if (v.startsWith('encoder_attention_mask')) {
-        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, enc_seqlen]);
+        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
       }
     }
     feeds['use_cache_branch'] = getTensor('bool', false);
-    feeds['input_ids'] = getTensor('int64', 99n, [1, seqlen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, enc_seqlen, hiddendim]);
+    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, hiddendim]);
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
     if ([].indexOf(modelName) >= 0) {
-      seqlen = 1;
+      decSeqLen = 1;
     }
     const dtype = inputs == 'bert' ? 'int32' : 'int64';
     const value = inputs == 'bert' ? 99 : 99n;
@@ -106,13 +77,13 @@ function getFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v === 'input_ids') {
-        feeds[v] = getTensor(dtype, value, [1, seqlen]);
+        feeds[v] = getTensor(dtype, value, [1, decSeqLen]);
       }
       if (v === 'input_mask' || v === 'attention_mask') {
-        feeds[v] = getTensor(dtype, one, [1, seqlen]);
+        feeds[v] = getTensor(dtype, one, [1, decSeqLen]);
       }
       if (v === 'token_type_ids' || v == 'segment_ids') {
-        feeds[v] = getTensor(dtype, one, [1, seqlen]);
+        feeds[v] = getTensor(dtype, one, [1, decSeqLen]);
       }
     }
   }
@@ -129,21 +100,44 @@ function getFeeds(session, modelName) {
 
   if (inputs == 'llm-decoder') {
     if (modelName === 'gpt2') {
-      seqlen = 8;
+      decSeqLen = 8;
     } else if (modelName === 'distilgpt2') {
-      seqlen = 16;
+      decSeqLen = 16;
     }
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        feeds[v] = getTensor('float32', 1., [1, 12, seqlen, 64]);
+        feeds[v] = getTensor('float32', 1., [1, 12, decSeqLen, 64]);
       }
     }
     feeds['use_cache_branch'] = getTensor('bool', false);
-    feeds['input_ids'] = getTensor('int64', 99n, [1, seqlen]);
-    feeds['attention_mask'] = getTensor('int64', 1n, [1, seqlen]);
+    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    feeds['attention_mask'] = getTensor('int64', 1n, [1, decSeqLen]);
   }
 
+  if (inputs == 'm2m100-decoder') {
+    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 1024]);
+    const encoder_shape = [1, 16, encSeqLen, 64];
+    const decoder_shape = [1, 16, decSeqLen, 64];
+    for (var k in inputNames) {
+      const v = inputNames[k];
+      if (v.startsWith('past_key_values.')) {
+        if (v.includes('decoder')) {
+          feeds[v] = getTensor('float32', 1, decoder_shape);
+        } else if (v.includes('encoder')) {
+          feeds[v] = getTensor('float32', 1, encoder_shape);
+        }
+      }
+    }
+    feeds['use_cache_branch'] = getTensor('bool', true);
+  }
+
+  if (inputs == 'm2m100-encoder') {
+    feeds['input_ids'] = getTensor('int64', 99n, [1, encSeqLen]);
+    feeds['attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+  }
 
   if (inputs == 'sam-decoder') {
     feeds['image_embeddings'] = getTensor('float32', 0.5, [1, 256, 64, 64]);
@@ -156,12 +150,16 @@ function getFeeds(session, modelName) {
     }
   }
 
+  if (inputs == 'sam-encoder') {
+    feeds['input_image'] = fillTensor('float32', 1., [224, 224, 3]);
+  }
+
   if (['t5-decoder', 'flan-t5-decoder'].indexOf(inputs) >= 0) {
-    seqlen = 1;
-    feeds['input_ids'] = getTensor('int64', 99n, [1, seqlen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, seqlen, 512]);
-    const encoder_shape = (inputs == 't5-decoder') ? [1, 8, enc_seqlen, 64] : [1, 6, enc_seqlen, 64];
-    const decoder_shape = (inputs == 't5-decoder') ? [1, 8, seqlen, 64] : [1, 6, seqlen, 64];
+    decSeqLen = 1;
+    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, decSeqLen, 512]);
+    const encoder_shape = (inputs == 't5-decoder') ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
+    const decoder_shape = (inputs == 't5-decoder') ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
@@ -172,14 +170,14 @@ function getFeeds(session, modelName) {
         }
       }
       if (v == 'encoder_attention_mask') {
-        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, enc_seqlen]);
+        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
       }
     }
     feeds['use_cache_branch'] = getTensor('bool', true);
   }
 
   if (inputs === 't5-encoder') {
-    feeds['input_ids'] = getTensor('int64', 99n, [1, seqlen]);
+    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
   }
 
   if (inputs === 'whisper-decoder') {
@@ -189,7 +187,7 @@ function getFeeds(session, modelName) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          feeds[v] = getTensor('float32', 1, [1, 6, seqlen, 64]);
+          feeds[v] = getTensor('float32', 1, [1, 6, decSeqLen, 64]);
         } else if (v.includes('encoder')) {
           feeds[v] = getTensor('float32', 1, [1, 6, 1500, 64]);
         }
