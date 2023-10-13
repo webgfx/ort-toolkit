@@ -47,6 +47,7 @@
   <script>
     'use strict';
 
+    const disableBuffer = getParam('disableBuffer') === 'true' || false;
     const ep = getParam('ep') || 'webgpu';
     const layout = getParam('layout') || 'NHWC';
     const modelName = getParam('modelName') || 'mobilenetv2-12';
@@ -67,14 +68,15 @@
 
     // for developers
     let device = getParam('device') || 'gpu';
-    const power = getParam('power') || 'default';
-    const keepConsole = getParam('keepConsole') === 'true' || false;
-
-    const verbose = getParam('verbose') === 'true' || false;
-
     if (ep === 'webgpu') {
       device = 'gpu';
     }
+
+    const enableConsole = getParam('enableConsole') === 'true' || false;
+    const enableVerbose = getParam('enableVerbose') === 'true' || false;
+    const power = getParam('power') || 'default';
+
+    // globals
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
     let webgpuProfilingData = [];
@@ -112,14 +114,17 @@
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
     async function runTask(task, ep) {
-      let sessionStartTime = performance.now();
-      let totalTime = 0;
-      let times = [];
+      let modelBuffer;
       let oldConsoleLog;
       let session;
+      let sessionStartTime = performance.now();
+      let times = [];
+      let totalTime = 0;
 
       const getModelStartTime = performance.now();
-      const modelBuffer = await getModelOPFS(modelName, modelUrl, updateModel);
+      if (!disableBuffer) {
+        modelBuffer = await getModelOPFS(modelName, modelUrl, updateModel);
+      }
       const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
       console.info(`${elapsedTime}ms was used to get model`);
 
@@ -145,7 +150,11 @@
 
       if (task != 'ortProfiling') {
         const sessionCreateStartTime = performance.now();
-        session = await ort.InferenceSession.create(modelBuffer, option);
+        if (disableBuffer) {
+          session = await ort.InferenceSession.create(modelUrl, option);
+        } else {
+          session = await ort.InferenceSession.create(modelBuffer, option);
+        }
         if (feeds === undefined) {
           feeds = getFeeds(session, modelName);
         }
@@ -154,7 +163,7 @@
       }
 
       // Not sure why this doesn't work for WebNN
-      if (!keepConsole && task.endsWith('Profiling')) {
+      if (!enableConsole && task.endsWith('Profiling')) {
         oldConsoleLog = console.log;
         console.log = processConsole;
       }
@@ -174,7 +183,11 @@
 
         if (task === 'ortProfiling') {
           const sessionCreateStartTime = performance.now();
-          session = await ort.InferenceSession.create(modelBuffer, option);
+          if (disableBuffer) {
+            session = await ort.InferenceSession.create(modelUrl, option);
+          } else {
+            session = await ort.InferenceSession.create(modelBuffer, option);
+          }
           feeds = getFeeds(session, modelName);
           const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
           console.info(`${elapsedTime}ms was used to create session`);
@@ -208,7 +221,7 @@
         }
       }
 
-      if (!keepConsole && task.endsWith('Profiling')) {
+      if (!enableConsole && task.endsWith('Profiling')) {
         console.log = oldConsoleLog;
       }
 

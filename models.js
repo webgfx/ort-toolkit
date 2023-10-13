@@ -1,4 +1,5 @@
 const models = {
+  // daily test
   'albert-base-v2': 'bert64', // tjs/albert-base-v2/onnx/model.onnx. TODO: NaN
   'bart-large-cnn-encoder': 'bert64', // tjs/facebook/bart-large-cnn/onnx/encoder_model.onnx
   'bert-base-cased': 'bert64', // tjs/bert-base-cased/onnx/model.onnx
@@ -13,33 +14,46 @@ const models = {
   'efficientnet-lite4-11': { 'images:0': ['float32', 'random', [1, 224, 224, 3]] }, // webnn
   'emotion-ferplus-8': { 'Input3': ['float32', 'random', [1, 1, 64, 64]] }, // webnn
   'gpt2': 'llm-decoder', // tjs/gpt2/onnx/decoder_model_merged.onnx. TODO: NaN
+
   'mobilenetv2-12': 'img224', // from teams
   'resnet50-v2-7': 'img224', // webnn
+
+  /*
+  https://github.com/vietanhdev/samexporter
+  python -m samexporter.export_decoder --checkpoint models/sam_vit_b_01ec64.pth --output models/sam-b-decoder.onnx --model-type vit_b --return-single-mask
+  python -m samexporter.export_encoder --checkpoint models/sam_vit_b_01ec64.pth --output models/sam-b-encoder.onnx --model-type vit_b --use-preprocess
+  python -m samexporter.export_decoder --checkpoint models/sam_vit_l_0b3195.pth --output models/sam-l-decoder.onnx --model-type vit_l --return-single-mask
+  python -m samexporter.export_encoder --checkpoint models/sam_vit_l_0b3195.pth --output models/sam-l-encoder.onnx --model-type vit_l --use-preprocess
+  python -m samexporter.export_decoder --checkpoint models/sam_vit_h_4b8939.pth --output models/sam-h-decoder.onnx --model-type vit_h --return-single-mask
+  python -m samexporter.export_encoder --checkpoint models/sam_vit_h_4b8939.pth --output models/sam-h-encoder.onnx --model-type vit_h --use-preprocess
+  */
+  'sam-b-decoder': 'sam-decoder', // TODO: conformance fails
+
+  'sd-vae-encoder': 'sd-vae-encoder',
+
   't5-small-decoder': 't5-decoder', // tjs/t5-small/onnx/decoder_model_merged.onnx
   't5-small-encoder': 't5-encoder', // tjs/t5-small/onnx/encoder_model.onnx
+
   'tinyyolov2-8': { 'image': ['float32', 'random', [1, 3, 416, 416]] }, // webnn
   'whisper-tiny-decoder': 'whisper-decoder', // tjs/openai/whisper-tiny/onnx/decoder_model_merged.onnx
   'whisper-tiny-encoder': { 'input_features': ['float32', 'random', [1, 80, 3000]] }, // tjs/openai/whisper-tiny/onnx/encoder_model.onnx
 
 
   // TODO
-  'm2m100-decoder': 'm2m100-decoder', // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx. TODO: RuntimeError: Aborted()
-  'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. TODO: RangeError: offset is out of bounds
+  'sam-b-encoder': 'sam-encoder', // shader issue
 
-  'sam-b-decoder': 'sam-decoder', // sam/sam_vit_b-decoder.onnx. TODO: Need model
-  'sam-h-decoder-static': 'sam-decoder', // sam/segment-anything-vit-h-static-shapes-static.onnx. TODO: Need model
-  'sam-b-encoder': 'sam-encoder', // sam/sam_vit_b-encoder.onnx. TODO: Need model
+  'm2m100-decoder': 'm2m100-decoder', // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx. RuntimeError: Aborted()
+  'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. RangeError: offset is out of bounds
 
-  'sd-text-encoder': '',
-  'sd-unet': '',
-  'sd-vae-decoder': '',
-  'sd-vae-encoder': '',
+  // http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
+  'sd-text-encoder': 'sd-text-encoder', // Failed to run JSEP kernel
+  'sd-unet': 'sd-unet', // How to enable separate weights file?
+  'sd-vae-decoder': 'sd-vae-decoder', // Failed to run JSEP kernel
 
   // Obsolete
   'mobilenetv2-7': 'img224',
   'mobilenetv2-10': 'img224',
   'resnet50-v1-12': 'img224',
-
 }
 
 function getFeeds(session, modelName) {
@@ -151,7 +165,25 @@ function getFeeds(session, modelName) {
   }
 
   if (inputs == 'sam-encoder') {
-    feeds['input_image'] = fillTensor('float32', 1., [224, 224, 3]);
+    feeds['input_image'] = getTensor('float32', 1., [224, 224, 3]);
+  }
+
+  if (inputs == 'sd-text-encoder') {
+    feeds['input_ids'] = getTensor('int32', 99, [1, encSeqLen]);
+  }
+
+  if (inputs == 'sd-unet') {
+    feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+    feeds['timestep'] = getTensor('int64', 1n, [1]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+  }
+
+  if (inputs == 'sd-vae-decoder') {
+    feeds['latent_sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+  }
+
+  if (inputs == 'sd-vae-encoder') {
+    feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
   }
 
   if (['t5-decoder', 'flan-t5-decoder'].indexOf(inputs) >= 0) {
