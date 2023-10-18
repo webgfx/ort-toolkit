@@ -22,7 +22,7 @@
     <li>ep: execution provider. E.g., webgpu, wasm</li>
     <li>layout=[NCHW|NHWC]. NHWC is the default.</li>
     <li>modelName: name of modelName. E.g., mobilenetv2-12</li>
-    <li>modelUrl=[hf|server|[url]]. Note that if you provide the url, you may fail to execute the modelName as the
+    <li>modelUrl=[hf|server|wp-27|[url]]. Note that if you provide the url, you may fail to execute the modelName as the
       inputs are not defined well.</li>
     <li>ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime
     <li>runTimes: Run times</li>
@@ -56,6 +56,8 @@
       modelUrl = `https://huggingface.co/webatintel/ort-models/resolve/main/${modelName}.onnx`;
     } else if (modelUrl === 'server') {
       modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelName}.onnx`;
+    } else if (modelUrl === 'wp-27') {
+      modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelName}.onnx`;
     }
     const ortUrl = getParam('ortUrl');
     let runTimes = getParam('runTimes') || 3;
