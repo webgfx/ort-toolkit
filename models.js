@@ -45,9 +45,10 @@ const models = {
   'm2m100-decoder': 'm2m100-decoder', // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx. RuntimeError: Aborted()
   'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. RangeError: offset is out of bounds
 
-  // http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
+  // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN
+  // the rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
   'sd-text-encoder': 'sd-text-encoder', // Failed to run JSEP kernel
-  'sd-unet': 'sd-unet', // How to enable separate weights file?
+  'sd-unet': 'sd-unet', // RangeError: offset is out of bounds
   'sd-vae-decoder': 'sd-vae-decoder', // Failed to run JSEP kernel
 
   // Obsolete

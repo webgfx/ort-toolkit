@@ -51,13 +51,17 @@
     const ep = getParam('ep') || 'webgpu';
     const layout = getParam('layout') || 'NHWC';
     const modelName = getParam('modelName') || 'mobilenetv2-12';
-    let modelUrl = getParam('modelUrl') || 'server';
+    let modelUrl = getParam('modelUrl') || 'wp-27';
+    let modelFolder = '';
+    if (['sd-unet'].indexOf(modelName) >= 0) {
+      modelFolder = 'private/'
+    }
     if (modelUrl === 'hf') {
-      modelUrl = `https://huggingface.co/webatintel/ort-models/resolve/main/${modelName}.onnx`;
+      modelUrl = `https://huggingface.co/webatintel/ort-models/resolve/main/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'server') {
-      modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelName}.onnx`;
+      modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'wp-27') {
-      modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelName}.onnx`;
+      modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelFolder}${modelName}.onnx`;
     }
     const ortUrl = getParam('ortUrl');
     let runTimes = getParam('runTimes') || 3;
