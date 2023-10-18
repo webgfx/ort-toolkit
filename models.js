@@ -48,7 +48,7 @@ const models = {
   // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN
   // the rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
   'sd-text-encoder': 'sd-text-encoder', // Failed to run JSEP kernel
-  'sd-unet': 'sd-unet', // RangeError: offset is out of bounds
+  'sd-unet-f16': 'sd-unet-f16', // RangeError: offset is out of bounds
   'sd-vae-decoder': 'sd-vae-decoder', // Failed to run JSEP kernel
 
   // Obsolete
@@ -173,10 +173,10 @@ function getFeeds(session, modelName) {
     feeds['input_ids'] = getTensor('int32', 99, [1, encSeqLen]);
   }
 
-  if (inputs == 'sd-unet') {
-    feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+  if (inputs == 'sd-unet-f16') {
+    feeds['sample'] = getTensor('float16', 1, [1, 4, 64, 64]);
     feeds['timestep'] = getTensor('int64', 1n, [1]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+    feeds['encoder_hidden_states'] = getTensor('float16', 1, [1, 77, 768]);
   }
 
   if (inputs == 'sd-vae-decoder') {
