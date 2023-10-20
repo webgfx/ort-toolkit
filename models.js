@@ -29,6 +29,8 @@ const models = {
   */
   'sam-b-decoder': 'sam-decoder', // TODO: conformance fails
 
+  'sd-vae-decoder': 'sd-vae-decoder',
+  'sd-vae-decoder-f16': 'sd-vae-decoder-f16',
   'sd-vae-encoder': 'sd-vae-encoder',
 
   't5-small-decoder': 't5-decoder', // tjs/t5-small/onnx/decoder_model_merged.onnx
@@ -46,10 +48,11 @@ const models = {
   'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. RangeError: offset is out of bounds
 
   // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN
+  // sd-vae-decoder-f16: sd2.1-inpainting-vae-decoder-float16-zeroed-weights from WebNN
   // the rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
   'sd-text-encoder': 'sd-text-encoder', // Failed to run JSEP kernel
   'sd-unet-f16': 'sd-unet-f16', // RangeError: offset is out of bounds
-  'sd-vae-decoder': 'sd-vae-decoder', // Failed to run JSEP kernel
+
 
   // Obsolete
   'mobilenetv2-7': 'img224',
@@ -179,8 +182,12 @@ function getFeeds(session, modelName) {
     feeds['encoder_hidden_states'] = getTensor('float16', 1, [1, 77, 768]);
   }
 
+  if (inputs == 'sd-vae-decoder-f16') {
+    feeds['latent_sample'] = getTensor('float16', 'random', [1, 4, 64, 64]);
+  }
+
   if (inputs == 'sd-vae-decoder') {
-    feeds['latent_sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+    feeds['latent_sample'] = getTensor('float32', 'random', [1, 4, 64, 64]);
   }
 
   if (inputs == 'sd-vae-encoder') {
@@ -257,13 +264,20 @@ function getTensor(type, data, dims) {
 
   let _data;
   if (Array.isArray(data)) {
-    _data = data === 'random' ? Math.random() : data;
+    _data = data;
   } else {
     let size = 1;
     dims.forEach((dim) => {
       size *= dim;
     });
-    _data = typedArray.from({ length: size }, () => data === 'random' ? Math.random() : data);
+    if (data === 'ramdom') {
+      _data = typedArray.from({ length: size }, () => Math.random());
+    } else if (data === 'ramp') {
+      _data = typedArray.from({ length: size }, (_, i) => i);
+    } else {
+      _data = typedArray.from({ length: size }, () => data);
+    }
+
   }
   return new ort.Tensor(type, _data, dims);
 }

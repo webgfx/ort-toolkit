@@ -53,7 +53,7 @@
     const modelName = getParam('modelName') || 'mobilenetv2-12';
     let modelUrl = getParam('modelUrl') || 'wp-27';
     let modelFolder = '';
-    if (['sd-unet-f16'].indexOf(modelName) >= 0) {
+    if (['sd-unet-f16', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
       modelFolder = 'private/'
     }
     if (modelUrl === 'hf') {
