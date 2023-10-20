@@ -30,8 +30,10 @@ const models = {
   'sam-b-decoder': 'sam-decoder', // TODO: conformance fails
 
   'sd-vae-decoder': 'sd-vae-decoder',
+  'sd-vae-decoder-arthur': 'sd-vae-decoder', // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/tree/9f697c96d42e5c09437ff14b0a2b287366ce488d/vae_decoder
   'sd-vae-decoder-f16': 'sd-vae-decoder-f16',
   'sd-vae-encoder': 'sd-vae-encoder',
+
 
   't5-small-decoder': 't5-decoder', // tjs/t5-small/onnx/decoder_model_merged.onnx
   't5-small-encoder': 't5-encoder', // tjs/t5-small/onnx/encoder_model.onnx
