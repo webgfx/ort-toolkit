@@ -149,10 +149,10 @@
         ],
       };
 
-      if (ep === 'wasm') {
-        ort.env.wasm.numThreads = wasmThreads;
-        ort.env.wasm.simd = true;
-      } else if (ep === 'webnn') {
+      ort.env.wasm.numThreads = wasmThreads;
+      ort.env.wasm.simd = true;
+
+      if (ep === 'webnn') {
         ort.env.wasm.simd = true;
         ort.env.wasm.proxy = true;
         option.freeDimensionOverrides = true;
