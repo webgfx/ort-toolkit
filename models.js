@@ -272,7 +272,7 @@ function getTensor(type, data, dims) {
     dims.forEach((dim) => {
       size *= dim;
     });
-    if (data === 'ramdom') {
+    if (data === 'random') {
       _data = typedArray.from({ length: size }, () => Math.random());
     } else if (data === 'ramp') {
       _data = typedArray.from({ length: size }, (_, i) => i);
