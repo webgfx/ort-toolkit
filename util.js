@@ -160,10 +160,10 @@ function areCloseArrays(actual, expected, epsilon) {
 }
 
 function areClosePrimitives(actual, expected, epsilon) {
-  if (!isFinite(actual) && !isFinite(expected)) {
-    return true;
-  } else if (isNaN(actual) || isNaN(expected)) {
+  if (isNaN(actual) || isNaN(expected)) {
     return false;
+  } else if (!isFinite(actual) && !isFinite(expected)) {
+    return true;
   }
 
   const error = Math.abs(actual - expected);
