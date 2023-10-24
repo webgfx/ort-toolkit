@@ -28,6 +28,7 @@ const models = {
   python -m samexporter.export_encoder --checkpoint models/sam_vit_h_4b8939.pth --output models/sam-h-encoder.onnx --model-type vit_h --use-preprocess
   */
   'sam-b-decoder': 'sam-decoder', // TODO: conformance fails
+  'sam-b-encoder': 'sam-encoder',
 
   'sd-vae-decoder': 'sd-vae-decoder',
   'sd-vae-decoder-arthur': 'sd-vae-decoder', // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/tree/9f697c96d42e5c09437ff14b0a2b287366ce488d/vae_decoder
@@ -44,8 +45,6 @@ const models = {
 
 
   // TODO
-  'sam-b-encoder': 'sam-encoder', // shader issue
-
   'm2m100-decoder': 'm2m100-decoder', // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx. RuntimeError: Aborted()
   'm2m100-encoder': 'm2m100-encoder',// https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx. RangeError: offset is out of bounds
 
