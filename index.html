@@ -69,6 +69,7 @@
     } else if (modelUrl === 'wp-27') {
       modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelFolder}${modelName}.onnx`;
     }
+
     const ortUrl = getParam('ortUrl');
     let runTimes = getParam('runTimes') || 3;
     runTimes = parseInt(runTimes);
@@ -86,6 +87,7 @@
 
     const enableConsole = getParam('enableConsole') === 'true' || false;
     const enableVerbose = getParam('enableVerbose') === 'true' || false;
+    const enableReadback = getParam('enableReadback') === 'true' || false;
     const power = getParam('power') || 'default';
 
     // globals
@@ -95,6 +97,7 @@
     let webgpuProfilingIndex = 0;
     let warmupTimesLeft = warmupTimes;
     const displayPrecision = 2;
+    let modelBuffer;
     const unitConversionFactor = 1000000;
     let feeds;
 
@@ -110,6 +113,10 @@
         await loadScript(url);
       }
 
+      if (!disableBuffer) {
+        modelBuffer = await getModelOPFS(modelName, modelUrl, updateModel);
+      }
+
       for (let task of tasks.split(',')) {
         if (task === 'conformance') {
           let epOutput = await runTask('conformance', ep);
@@ -123,10 +130,19 @@
       }
     }
 
+    async function createSession(option) {
+      let session;
+      if (disableBuffer) {
+          session = await ort.InferenceSession.create(modelUrl, option);
+        } else {
+          session = await ort.InferenceSession.create(modelBuffer, option);
+        }
+      return session;
+    }
+
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
     async function runTask(task, ep) {
-      let modelBuffer;
       let oldConsoleLog;
       let session;
       let sessionStartTime = performance.now();
@@ -134,9 +150,6 @@
       let totalTime = 0;
 
       const getModelStartTime = performance.now();
-      if (!disableBuffer) {
-        modelBuffer = await getModelOPFS(modelName, modelUrl, updateModel);
-      }
       const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
       console.info(`${elapsedTime}ms was used to get model`);
 
@@ -148,8 +161,16 @@
             powerPreference: power,
             preferredLayout: layout,
           },
-        ],
+        ]
       };
+
+      if (ep === 'webgpu' && !enableReadback) {
+        option.preferredOutputLocation = {};
+        let tmpSession = await createSession(option);
+        for (let output of tmpSession.outputNames) {
+          option.preferredOutputLocation[output] = 'gpu-buffer';
+        }
+      }
 
       ort.env.wasm.numThreads = wasmThreads;
       ort.env.wasm.simd = true;
@@ -162,11 +183,7 @@
 
       if (task != 'ortProfiling') {
         const sessionCreateStartTime = performance.now();
-        if (disableBuffer) {
-          session = await ort.InferenceSession.create(modelUrl, option);
-        } else {
-          session = await ort.InferenceSession.create(modelBuffer, option);
-        }
+        session = await createSession(option);
         if (feeds === undefined) {
           feeds = getFeeds(session, modelName);
         }
@@ -195,11 +212,7 @@
 
         if (task === 'ortProfiling') {
           const sessionCreateStartTime = performance.now();
-          if (disableBuffer) {
-            session = await ort.InferenceSession.create(modelUrl, option);
-          } else {
-            session = await ort.InferenceSession.create(modelBuffer, option);
-          }
+          session = await createSession(option);
           feeds = getFeeds(session, modelName);
           const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
           console.info(`${elapsedTime}ms was used to create session`);
@@ -211,6 +224,9 @@
           results = await session.run(clone(feeds));
         } else {
           results = await session.run(feeds);
+          if (ep === 'webgpu' && !enableReadback) {
+            await ort.env.webgpu.device.queue.onSubmittedWorkDone();
+          }
         }
         if (task === 'conformance') {
           let result = results[session.outputNames[0]]['data'];
