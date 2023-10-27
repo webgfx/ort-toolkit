@@ -63,7 +63,7 @@
       modelFolder = 'private/'
     }
     if (modelUrl === 'hf') {
-      modelUrl = `https://huggingface.co/onnxruntime/ort-models/resolve/main/${modelFolder}${modelName}.onnx`;
+      modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'server') {
       modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'wp-27') {
