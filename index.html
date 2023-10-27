@@ -34,7 +34,7 @@
     <li>warmupTimes: Warmup times</li>
     <li>wasmThreads: wasm threads number</li>
     <li>Example:
-      https://wp-27.sh.intel.com/workspace/project/webatintel/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
+      https://wp-27.sh.intel.com/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
     </li>
     <p></p>
     <b>Test Results</b>
@@ -63,7 +63,7 @@
       modelFolder = 'private/'
     }
     if (modelUrl === 'hf') {
-      modelUrl = `https://huggingface.co/webatintel/ort-models/resolve/main/${modelFolder}${modelName}.onnx`;
+      modelUrl = `https://huggingface.co/onnxruntime/ort-models/resolve/main/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'server') {
       modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'wp-27') {
@@ -100,6 +100,7 @@
     let modelBuffer;
     const unitConversionFactor = 1000000;
     let feeds;
+    let originConsoleLog;
 
     async function main() {
       let urls;
@@ -143,7 +144,6 @@
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
     async function runTask(task, ep) {
-      let oldConsoleLog;
       let session;
       let sessionStartTime = performance.now();
       let times = [];
@@ -193,7 +193,7 @@
 
       // Not sure why this doesn't work for WebNN
       if (!enableConsole && task.endsWith('Profiling')) {
-        oldConsoleLog = console.log;
+        originConsoleLog = console.log;
         console.log = processConsole;
       }
 
@@ -250,7 +250,7 @@
       }
 
       if (!enableConsole && task.endsWith('Profiling')) {
-        console.log = oldConsoleLog;
+        console.log = originConsoleLog;
       }
 
       return times;
@@ -430,6 +430,8 @@
           webgpuProfilingData.push([webgpuProfilingIndex++, results[1], parseInt(results[3]) / unitConversionFactor, results[2]]);
         }
       }
+
+      originConsoleLog(content);
     }
 
     main();
