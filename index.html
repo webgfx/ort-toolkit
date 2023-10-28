@@ -164,7 +164,7 @@
         ]
       };
 
-      if (ep === 'webgpu' && !enableReadback) {
+      if (ep === 'webgpu' && !enableReadback && task !== 'conformance') {
         option.preferredOutputLocation = {};
         let tmpSession = await createSession(option);
         for (let output of tmpSession.outputNames) {
@@ -224,7 +224,7 @@
           results = await session.run(clone(feeds));
         } else {
           results = await session.run(feeds);
-          if (ep === 'webgpu' && !enableReadback) {
+          if (ep === 'webgpu' && !enableReadback && task !== 'conformance') {
             await ort.env.webgpu.device.queue.onSubmittedWorkDone();
           }
         }
