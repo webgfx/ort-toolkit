@@ -170,6 +170,7 @@
         for (let output of tmpSession.outputNames) {
           option.preferredOutputLocation[output] = 'gpu-buffer';
         }
+        tmpSession.release();
       }
 
       ort.env.wasm.numThreads = wasmThreads;
@@ -230,6 +231,7 @@
         }
         if (task === 'conformance') {
           let result = results[session.outputNames[0]]['data'];
+          session.release();
           return result;
         }
         if (i === 0 || i >= warmupTimes) {
@@ -240,6 +242,7 @@
 
         if (i === warmupTimes && task === 'ortProfiling') {
           session.endProfiling();
+          session.release();
           break;
         }
 
@@ -251,6 +254,10 @@
 
       if (!enableConsole && task.endsWith('Profiling')) {
         console.log = originConsoleLog;
+      }
+
+      if (task != 'ortProfiling') {
+        session.release();
       }
 
       return times;
