@@ -132,13 +132,11 @@
     }
 
     async function createSession(option) {
-      let session;
       if (disableBuffer) {
-          session = await ort.InferenceSession.create(modelUrl, option);
+          return await ort.InferenceSession.create(modelUrl, option);
         } else {
-          session = await ort.InferenceSession.create(modelBuffer, option);
+          return await ort.InferenceSession.create(modelBuffer, option);
         }
-      return session;
     }
 
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
@@ -165,12 +163,7 @@
       };
 
       if (ep === 'webgpu' && !enableReadback && task !== 'conformance') {
-        option.preferredOutputLocation = {};
-        let tmpSession = await createSession(option);
-        for (let output of tmpSession.outputNames) {
-          option.preferredOutputLocation[output] = 'gpu-buffer';
-        }
-        tmpSession.release();
+        option.preferredOutputLocation = 'gpu-buffer';
       }
 
       ort.env.wasm.numThreads = wasmThreads;
