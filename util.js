@@ -111,7 +111,7 @@ function areCloseObjects(actual, expected, epsilon) {
     } else if (isObject) {
       areCloseObjects(actual[key], expected[key], epsilon);
     } else {
-      if (!areClosePrimitives(actual[key], expected[key])) {
+      if (!areClosePrimitives(actual[key], expected[key], epsilon)) {
         throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${JSON.stringify(expected[key])}!`);
       }
     }
@@ -150,7 +150,7 @@ function areCloseArrays(actual, expected, epsilon) {
     const a = actualFlat[i];
     const e = expectedFlat[i];
 
-    if (!areClosePrimitives(a, e)) {
+    if (!areClosePrimitives(a, e, epsilon)) {
       throw new Error(
         `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
         `Actual:   ${actualFlat}.\n` +

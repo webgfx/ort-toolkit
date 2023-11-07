@@ -92,6 +92,9 @@ const models =
       // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/tree/9f697c96d42e5c09437ff14b0a2b287366ce488d/vae_decoder
       'sd-vae-decoder-arthur': 'sd-vae-decoder',
 
+      // Temp
+      'sam-b-vision-encoder': 'sam-b-vision-encoder',
+
     }
 
 function getFeeds(session, modelName) {
@@ -122,9 +125,9 @@ function getFeeds(session, modelName) {
     if ([].indexOf(modelName) >= 0) {
       decSeqLen = 1;
     }
-    const dtype = inputs == 'bert' ? 'int32' : 'int64';
-    const value = inputs == 'bert' ? 99 : 99n;
-    const one = inputs == 'bert' ? 1 : 1n;
+    const dtype = inputs === 'bert' ? 'int32' : 'int64';
+    const value = inputs === 'bert' ? 99 : 99n;
+    const one = inputs === 'bert' ? 1 : 1n;
 
     for (var k in inputNames) {
       const v = inputNames[k];
@@ -150,7 +153,7 @@ function getFeeds(session, modelName) {
     feeds[inputNames[0]] = getTensor('float32', 'random', [1, 3, 224, 224]);
   }
 
-  if (inputs == 'llm-decoder') {
+  if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2') {
       decSeqLen = 8;
     } else if (modelName === 'distilgpt2') {
@@ -167,7 +170,7 @@ function getFeeds(session, modelName) {
     feeds['attention_mask'] = getTensor('int64', 1n, [1, decSeqLen]);
   }
 
-  if (inputs == 'm2m100-decoder') {
+  if (inputs === 'm2m100-decoder') {
     feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 1024]);
@@ -186,12 +189,16 @@ function getFeeds(session, modelName) {
     feeds['use_cache_branch'] = getTensor('bool', true);
   }
 
-  if (inputs == 'm2m100-encoder') {
+  if (inputs === 'm2m100-encoder') {
     feeds['input_ids'] = getTensor('int64', 99n, [1, encSeqLen]);
     feeds['attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
   }
 
-  if (inputs == 'sam-decoder') {
+  if (inputs === 'sam-b-vision-encoder') {
+    feeds['pixel_values'] = getTensor('float32', 'random', [1, 3, 1024, 1024]);
+  }
+
+  if (inputs === 'sam-decoder') {
     feeds['image_embeddings'] = getTensor('float32', 0.5, [1, 256, 64, 64]);
     feeds['point_coords'] =
         new ort.Tensor(new Float32Array([327.1111, 426.875, 241.77777, 341.5, 398.22223, 498.02084]), [1, 3, 2]);
@@ -203,29 +210,29 @@ function getFeeds(session, modelName) {
     }
   }
 
-  if (inputs == 'sam-encoder') {
+  if (inputs === 'sam-encoder') {
     feeds['input_image'] = getTensor('float32', 1., [224, 224, 3]);
   }
 
-  if (inputs == 'sd-text-encoder') {
+  if (inputs === 'sd-text-encoder') {
     feeds['input_ids'] = getTensor('int32', 99, [1, encSeqLen]);
   }
 
-  if (inputs == 'sd-unet-f16') {
+  if (inputs === 'sd-unet-f16') {
     feeds['sample'] = getTensor('float16', 1, [1, 4, 64, 64]);
     feeds['timestep'] = getTensor('int64', 1n, [1]);
     feeds['encoder_hidden_states'] = getTensor('float16', 1, [1, 77, 768]);
   }
 
-  if (inputs == 'sd-vae-decoder-f16') {
+  if (inputs === 'sd-vae-decoder-f16') {
     feeds['latent_sample'] = getTensor('float16', 'random', [1, 4, 64, 64]);
   }
 
-  if (inputs == 'sd-vae-decoder') {
+  if (inputs === 'sd-vae-decoder') {
     feeds['latent_sample'] = getTensor('float32', 'random', [1, 4, 64, 64]);
   }
 
-  if (inputs == 'sd-vae-encoder') {
+  if (inputs === 'sd-vae-encoder') {
     feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
   }
 
@@ -233,8 +240,8 @@ function getFeeds(session, modelName) {
     decSeqLen = 1;
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, decSeqLen, 512]);
-    const encoder_shape = (inputs == 't5-decoder') ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
-    const decoder_shape = (inputs == 't5-decoder') ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
+    const encoder_shape = (inputs === 't5-decoder') ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
+    const decoder_shape = (inputs === 't5-decoder') ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {

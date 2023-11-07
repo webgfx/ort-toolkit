@@ -55,13 +55,19 @@
     const modelName = getParam('modelName') || 'mobilenetv2-12';
     let modelUrl = getParam('modelUrl') || 'wp-27';
     let modelFolder = '';
+
     if ([
       'sd-unet-f16',
       'sd-vae-decoder-arthur',
-      'sd-vae-decoder-f16'
+      'sd-vae-decoder-f16',
     ].indexOf(modelName) >= 0) {
-      modelFolder = 'private/'
+      modelFolder = 'private/';
+    } else if ([
+      'sam-b-vision-encoder',
+    ].indexOf(modelName) >= 0) {
+      modelFolder = 'tmp/';
     }
+
     if (modelUrl === 'hf') {
       modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === 'server') {
@@ -88,6 +94,7 @@
     const enableConsole = getParam('enableConsole') === 'true' || false;
     const enableVerbose = getParam('enableVerbose') === 'true' || false;
     const enableReadback = getParam('enableReadback') === 'true' || false;
+    const optLevel = getParam('optLevel') || 'all'; // basic, all, disabled, extended
     const power = getParam('power') || 'default';
 
     // globals
@@ -159,7 +166,8 @@
             powerPreference: power,
             preferredLayout: layout,
           },
-        ]
+        ],
+        graphOptimizationLevel: optLevel,
       };
 
       if (ep === 'webgpu' && !enableReadback && task !== 'conformance') {
