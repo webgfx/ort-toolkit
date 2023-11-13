@@ -22,7 +22,7 @@ async function getModelOPFS(name, url, updateModel) {
     fileHandle = await root.getFileHandle(name);
     const blob = await fileHandle.getFile();
     return await blob.arrayBuffer();
-  } catch(e) {
+  } catch (e) {
     return await updateFile();
   }
 }
@@ -50,7 +50,7 @@ async function readResponse(response) {
 
   const reader = response.body.getReader();
   async function read() {
-    const { done, value } = await reader.read();
+    const {done, value} = await reader.read();
     if (done) return;
 
     let newLoaded = loaded + value.length;
@@ -74,9 +74,7 @@ function reportStatus(status) {
 }
 
 function getSum(data) {
-  return data.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue
-  }, 0);
+  return data.reduce((accumulator, currentValue) => {return accumulator + currentValue}, 0);
 }
 
 function toggleClass(el, className) {
@@ -112,7 +110,8 @@ function areCloseObjects(actual, expected, epsilon) {
       areCloseObjects(actual[key], expected[key], epsilon);
     } else {
       if (!areClosePrimitives(actual[key], expected[key], epsilon)) {
-        throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${JSON.stringify(expected[key])}!`);
+        throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${
+            JSON.stringify(expected[key])}!`);
       }
     }
   }
@@ -141,10 +140,10 @@ function areCloseArrays(actual, expected, epsilon) {
 
   if (actualFlat.length !== expectedFlat.length) {
     throw new Error(
-      `Arrays have different lengths actual: ${actualFlat.length} vs ` +
-      `expected: ${expectedFlat.length}.\n` +
-      `Actual:   ${actualFlat}.\n` +
-      `Expected: ${expectedFlat}.`);
+        `Arrays have different lengths actual: ${actualFlat.length} vs ` +
+        `expected: ${expectedFlat.length}.\n` +
+        `Actual:   ${actualFlat}.\n` +
+        `Expected: ${expectedFlat}.`);
   }
   for (let i = 0; i < expectedFlat.length; ++i) {
     const a = actualFlat[i];
@@ -152,9 +151,9 @@ function areCloseArrays(actual, expected, epsilon) {
 
     if (!areClosePrimitives(a, e, epsilon)) {
       throw new Error(
-        `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
-        `Actual:   ${actualFlat}.\n` +
-        `Expected: ${expectedFlat}.`);
+          `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
+          `Actual:   ${actualFlat}.\n` +
+          `Expected: ${expectedFlat}.`);
     }
   }
 }
@@ -189,6 +188,8 @@ const type_to_func = {
   float16: Uint16Array,
   int32: Int32Array,
   BigInt64Array: BigInt64Array,
+  int64: BigInt64Array,
+  bool: Uint8Array,
 };
 
 function clone(x) {
@@ -196,11 +197,7 @@ function clone(x) {
   for (const [key, value] of Object.entries(x)) {
     let func = type_to_func[value.type];
     let arrayType = func.from(value.data);
-    feed[key] = new ort.Tensor(
-      value.type,
-      arrayType.slice(0),
-      value.dims
-    );
+    feed[key] = new ort.Tensor(value.type, arrayType.slice(0), value.dims);
   }
   return feed;
 }
