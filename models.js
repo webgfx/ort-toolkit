@@ -288,6 +288,29 @@ function getFeeds(session, modelName) {
   return feeds;
 }
 
+function getFreeDimensionOverrides(modelName) {
+  let freeDimensionOverrides = {};
+  if (modelName.startsWith('mobilenet')) {
+    freeDimensionOverrides = {batch_size: 1};
+  } else if (modelName == 'tinyyolov2-8') {
+    freeDimensionOverrides = {None: 1};
+  } else if (modelName == 'yolo') {
+    freeDimensionOverrides = {None: 1};
+  } else if (modelName.startsWith('resnet50')) {
+    freeDimensionOverrides = {N: 1};
+  } else if (modelName == 'sd-unet-f16') {
+    freeDimensionOverrides = {
+      unet_time_batch: 1,
+      unet_sample_channels: 4,
+      unet_sample_height: 64,
+      unet_sample_width: 64,
+      unet_hidden_batch: 1,
+      unet_hidden_sequence: 77,
+    };
+  }
+  return freeDimensionOverrides;
+}
+
 function getTensor(type, data, dims) {
   let typedArray;
   if (type === 'bool') {

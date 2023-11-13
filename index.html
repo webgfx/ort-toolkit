@@ -123,6 +123,10 @@
     }
 
     let enableDebug = getParam("enableDebug") === "true" || false;
+    let enableFreeDimensionOverrides =
+      getParam("enableFreeDimensionOverrides") === "true" || false;
+    // Temporarily set enableFreeDimensionOverrides to true by default
+    enableFreeDimensionOverrides = true;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
     const enableReadback = getParam("enableReadback") === "true" || false;
     let logLevel = getParam("logLevel");
@@ -239,11 +243,17 @@
         ort.env.logLevel = logLevel;
       }
 
+      if (task === "trace") {
+        ort.env.trace = true;
+      }
+
       // Override env
       if (ep === "webnn") {
-        ort.env.wasm.simd = true;
         ort.env.wasm.proxy = true;
-        option.freeDimensionOverrides = true;
+      }
+
+      if (ep === "webnn" || getFreeDimensionOverrides) {
+        option.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
       }
 
       if (task === "artifact") {
