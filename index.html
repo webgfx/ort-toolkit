@@ -84,7 +84,14 @@
 
     const disableBuffer = getParam("disableBuffer") === "true" || false;
     const ep = getParam("ep") || "webgpu";
-    const layout = getParam("layout") || "NHWC";
+    let layout = getParam("layout");
+    if (layout === null) {
+      if (ep === 'webgpu') {
+        layout = "NHWC";
+      } else {
+        layout = "";
+      }
+    }
     const modelName = getParam("modelName") || "mobilenetv2-12";
     let modelUrl = getParam("modelUrl") || "wp-27";
     let modelFolder = "";
@@ -404,7 +411,7 @@
       }
 
       // profiling
-      if (task.includes("profiling")) {
+      if (task.includes("Profiling")) {
         resultElement.innerText = `${data[data.length - 1]}ms`;
         if (task === "ortProfiling") {
           renderData(
