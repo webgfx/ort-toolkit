@@ -33,6 +33,7 @@
       Some parameters are supported in url, and you may use them as 'index.html?key0=value0&key1=value1...'. Supported
       parameters are:
     </p>
+    <li>deviceType: device type, which can be gpu or cpu</li>
     <li>ep: execution provider. E.g., webgpu, wasm</li>
     <li>layout=[NCHW|NHWC]. NHWC is the default.</li>
     <li>modelName: name of modelName. E.g., mobilenetv2-12</li>
@@ -49,6 +50,7 @@
     <li>updateModel=[true|false]. False (default) means no update.</li>
     <li>warmupTimes: Warmup times</li>
     <li>wasmThreads: wasm threads number</li>
+    <li>webnnNumThreads: WebNN numThreads for cpu</li>
     <li>
       Example:
       https://wp-27.sh.intel.com/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
@@ -68,13 +70,13 @@
 
     // url parameters
     const deviceType = getParam("deviceType") || "gpu";
-    const disableBuffer = getParam("disableBuffer") === "true" || false;
     const ep = getParam("ep") || "webgpu";
     let layout = getParam("layout");
     if (layout === null && ep === "webgpu") {
       layout = "NHWC";
     }
 
+    const modelName = getParam("modelName") || "mobilenetv2-12";
     let modelFolder = "";
     if (["sd-unet-f16", "sd-vae-decoder-arthur", "sd-vae-decoder-f16"].indexOf(modelName) >= 0) {
       modelFolder = "private/";
@@ -82,7 +84,6 @@
       modelFolder = "tmp/";
     }
 
-    const modelName = getParam("modelName") || "mobilenetv2-12";
     let modelUrl = getParam("modelUrl") || "wp-27";
     if (modelUrl === "hf") {
       modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
@@ -103,6 +104,7 @@
     const webnnNumThreads = parseInt(getParam("webnnNumThreads")) || 4;
 
     // for developers
+    const disableBuffer = getParam("disableBuffer") === "true" || false;
     let enableDebug = getParam("enableDebug") === "true" || false;
     let enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
     // Temporarily set enableFreeDimensionOverrides to true by default
@@ -419,7 +421,7 @@
       }
 
       if (ep === "webnn" && deviceType === 'cpu') {
-        option.numThreads = webnnNumThreads;
+        option.executionProviders[0].numThreads = webnnNumThreads;
       }
 
       if (ep === "webnn" || getFreeDimensionOverrides) {
