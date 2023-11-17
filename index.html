@@ -66,26 +66,24 @@
   <script>
     "use strict";
 
+    // url parameters
+    const deviceType = getParam("deviceType") || "gpu";
     const disableBuffer = getParam("disableBuffer") === "true" || false;
     const ep = getParam("ep") || "webgpu";
     let layout = getParam("layout");
-    if (layout === null) {
-      if (ep === "webgpu") {
-        layout = "NHWC";
-      } else {
-        layout = "";
-      }
+    if (layout === null && ep === "webgpu") {
+      layout = "NHWC";
     }
-    const modelName = getParam("modelName") || "mobilenetv2-12";
-    let modelUrl = getParam("modelUrl") || "wp-27";
-    let modelFolder = "";
 
+    let modelFolder = "";
     if (["sd-unet-f16", "sd-vae-decoder-arthur", "sd-vae-decoder-f16"].indexOf(modelName) >= 0) {
       modelFolder = "private/";
     } else if (["sam-b-vision-encoder"].indexOf(modelName) >= 0) {
       modelFolder = "tmp/";
     }
 
+    const modelName = getParam("modelName") || "mobilenetv2-12";
+    let modelUrl = getParam("modelUrl") || "wp-27";
     if (modelUrl === "hf") {
       modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
     } else if (modelUrl === "server") {
@@ -102,73 +100,34 @@
     let warmupTimes = getParam("warmupTimes") || 10;
     warmupTimes = parseInt(warmupTimes);
     const wasmThreads = parseInt(getParam("wasmThreads")) || 4;
+    const webnnNumThreads = parseInt(getParam("webnnNumThreads")) || 4;
 
     // for developers
-    let device = getParam("device") || "gpu";
-
     let enableDebug = getParam("enableDebug") === "true" || false;
     let enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
     // Temporarily set enableFreeDimensionOverrides to true by default
     enableFreeDimensionOverrides = true;
 
-    const enableVerbose = getParam("enableVerbose") === "true" || false;
     const enableReadback = getParam("enableReadback") === "true" || false;
-    let logLevel = getParam("logLevel");
+    const enableVerbose = getParam("enableVerbose") === "true" || false;
+    const logLevel = getParam("logLevel");
     const optLevel = getParam("optLevel") || "all"; // basic, all, disabled, extended
 
     // globals
     let artifactData = [];
     let artifactIndex = 0;
+    const displayPrecision = 2;
+    let feeds;
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
+    const unitConversionFactor = 1000000;
+    let warmupTimesLeft = warmupTimes;
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
-    let warmupTimesLeft = warmupTimes;
-    const displayPrecision = 2;
-    const unitConversionFactor = 1000000;
-    let feeds;
 
     // Not sure why this doesn't work for WebNN
     const originConsoleLog = console.log;
     console.log = processConsoleLog;
-
-    async function main() {
-      let urls = [];
-      let ortFiles;
-      if (ep === "webnn") {
-        ortFiles = ["ort.min.js", "ort.webgpu.min.js"];
-      } else {
-        ortFiles = ["ort.webgpu.min.js"];
-      }
-
-      for (let ortFile of ortFiles) {
-        if (ortUrl) {
-          urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
-        } else {
-          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@latest/dist/${ortFile}`);
-        }
-      }
-
-      urls = urls.concat(["models.js", "util.js"]);
-      for (let url of urls) {
-        await loadScript(url);
-      }
-
-      for (let task of tasks.split(",")) {
-        if (task === "conformance") {
-          let epOutput = await runTask("conformance", ep);
-          let cpuOutput = await runTask("conformance", "wasm");
-          renderTask(task, [epOutput, cpuOutput]);
-        } else if (task === "artifact") {
-          await runTask(task, ep);
-          renderTask(task);
-        } else {
-          let times = await runTask(task, ep);
-          renderTask(task, times);
-        }
-        reportStatus(`Finished task ${task}`);
-      }
-    }
 
     async function createSession(option) {
       if (disableBuffer) {
@@ -177,135 +136,6 @@
         // For WebNN, we need a new model buffer everytime as it's in worker thread
         return await ort.InferenceSession.create(await getModelOPFS(modelName, modelUrl, updateModel), option);
       }
-    }
-
-    // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
-    // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
-    async function runTask(task, ep) {
-      let session;
-      let sessionStartTime = performance.now();
-      let times = [];
-      let totalTime = 0;
-
-      const getModelStartTime = performance.now();
-      const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
-      console.info(`${elapsedTime}ms was used to get model`);
-
-      const option = {
-        executionProviders: [
-          {
-            name: ep,
-            deviceType: device,
-            preferredLayout: layout,
-          },
-        ],
-        graphOptimizationLevel: optLevel,
-      };
-
-      if (ep === "webgpu" && !enableReadback && task !== "conformance") {
-        option.preferredOutputLocation = "gpu-buffer";
-      }
-
-      // Set env
-      ort.env.wasm.simd = true;
-      ort.env.wasm.numThreads = wasmThreads;
-
-      if (enableDebug) {
-        ort.env.debug = true;
-      }
-      if (logLevel) {
-        ort.env.logLevel = logLevel;
-      }
-
-      if (task === "trace") {
-        ort.env.trace = true;
-      }
-
-      // Override env
-      if (ep === "webnn") {
-        ort.env.wasm.proxy = true;
-      }
-
-      if (ep === "webnn" || getFreeDimensionOverrides) {
-        option.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
-      }
-
-      if (task === "artifact") {
-        ort.env.debug = true;
-        ort.env.logLevel = "info";
-        warmupTimes = 0;
-        runTimes = 1;
-      }
-
-      if (task != "ortProfiling") {
-        const sessionCreateStartTime = performance.now();
-        session = await createSession(option);
-        if (feeds === undefined) {
-          feeds = getFeeds(session, modelName);
-        }
-        const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
-        console.info(`${elapsedTime}ms was used to create session`);
-      }
-
-      for (let i = 0; i < warmupTimes + runTimes; i++) {
-        if (!sessionStartTime) {
-          sessionStartTime = performance.now();
-        }
-        reportStatus(`Running task ${task} ${i} ...`);
-        if (i === warmupTimes && task === "ortProfiling") {
-          option.enableProfiling = true;
-        }
-
-        if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
-          ort.env.webgpu.profilingMode = "default";
-        }
-
-        if (task === "ortProfiling") {
-          const sessionCreateStartTime = performance.now();
-          session = await createSession(option);
-          feeds = getFeeds(session, modelName);
-          const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
-          console.info(`${elapsedTime}ms was used to create session`);
-        }
-
-        let results;
-        if (ep === "webnn") {
-          // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          results = await session.run(clone(feeds));
-        } else {
-          results = await session.run(feeds);
-          if (ep === "webgpu" && !enableReadback && task !== "conformance") {
-            await ort.env.webgpu.device.queue.onSubmittedWorkDone();
-          }
-        }
-        if (task === "conformance") {
-          let result = results[session.outputNames[0]]["data"];
-          session.release();
-          return result;
-        }
-        if (i === 0 || i >= warmupTimes) {
-          const elapsedTime = parseFloat((performance.now() - sessionStartTime).toFixed(2));
-          times.push(elapsedTime);
-        }
-        sessionStartTime = null;
-
-        if (i === warmupTimes && task === "ortProfiling") {
-          session.endProfiling();
-          session.release();
-          break;
-        }
-
-        if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
-          ort.env.webgpu.profilingMode = "";
-          break;
-        }
-      }
-
-      if (task != "ortProfiling") {
-        session.release();
-      }
-
-      return times;
     }
 
     function getParam(name) {
@@ -330,56 +160,78 @@
       });
     }
 
-    function renderTask(task, data) {
-      let taskElement = document.createElement("p");
-      document.body.appendChild(taskElement);
-      taskElement.innerText = `[${task} results]`;
-
-      let resultElement = document.createElement("p");
-      document.body.appendChild(resultElement);
-      resultElement.id = "result";
-      let result = {};
-
-      if (task === "conformance") {
-        result["result"] = compare(data[0], data[1]);
-
-        for (let i = 0; i < data.length; i++) {
-          console.info(data[i]);
-        }
-      } else if (task === "performance") {
-        let details = data.join(", ");
-        let detailsElement = document.createElement("p");
-        document.body.appendChild(detailsElement);
-        detailsElement.innerText = details;
-
-        result["first"] = data[0];
-        data.shift();
-        let totalTime = getSum(data);
-        let averageTime = parseFloat((totalTime / data.length).toFixed(2));
-        result["average"] = averageTime;
-        result["best"] = Math.min(...data);
+    async function main() {
+      // load scripts
+      let urls = [];
+      let ortFiles;
+      if (ep === "webnn") {
+        ortFiles = ["ort.min.js", "ort.webgpu.min.js"];
+      } else {
+        ortFiles = ["ort.webgpu.min.js"];
       }
 
-      if (task === "conformance" || task === "performance") {
-        resultElement.innerText = JSON.stringify(result);
-        return;
-      }
-
-      // profiling
-      if (task.includes("Profiling")) {
-        resultElement.innerText = `${data[data.length - 1]}ms`;
-        if (task === "ortProfiling") {
-          renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], ortProfilingData);
-        }
-        if (task === "webgpuProfiling") {
-          renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData);
-          renderData(["Index", "Kernel", "Time (ms)", "Shape"], webgpuProfilingData);
+      for (let ortFile of ortFiles) {
+        if (ortUrl) {
+          urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
+        } else {
+          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@latest/dist/${ortFile}`);
         }
       }
 
-      if (task === "artifact") {
-        renderData(["Index", "Key", "programName"], artifactData);
+      urls = urls.concat(["models.js", "util.js"]);
+      for (let url of urls) {
+        await loadScript(url);
       }
+
+      // run tasks
+      for (let task of tasks.split(",")) {
+        if (task === "conformance") {
+          let epOutput = await runTask("conformance", ep);
+          let cpuOutput = await runTask("conformance", "wasm");
+          renderTask(task, [epOutput, cpuOutput]);
+        } else if (task === "artifact") {
+          await runTask(task, ep);
+          renderTask(task);
+        } else {
+          let times = await runTask(task, ep);
+          renderTask(task, times);
+        }
+        reportStatus(`Finished task ${task}`);
+      }
+    }
+
+    function processConsoleLog(content) {
+      let results;
+      if (content.startsWith('{"cat"')) {
+        let results = JSON.parse(content.replace(/,$/, ""));
+        let args = results["args"];
+        if ("provider" in args) {
+          let shape = /(\"input_type_shape.*),\"thread_scheduling_stats\"/.exec(content);
+          ortProfilingData.push([
+            ortProfilingIndex++,
+            args["op_name"],
+            parseInt(results["dur"]) / unitConversionFactor,
+            shape[1],
+            args["provider"],
+          ]);
+        }
+      } else if (content.startsWith("[profiling]")) {
+        results = /\[profiling\] kernel \".*\[(.*)\].*\" (input.*), execution time\: (\d+) ns/.exec(content);
+        if (results) {
+          webgpuProfilingData.push([
+            webgpuProfilingIndex++,
+            results[1],
+            parseInt(results[3]) / unitConversionFactor,
+            results[2],
+          ]);
+        }
+      } else if (content.includes("[artifact]")) {
+        results = /\[artifact\] key: (.*), programName\: (.*)/.exec(content);
+        if (results) {
+          artifactData.push([artifactIndex++, results[1], results[2]]);
+        }
+      }
+      originConsoleLog(content);
     }
 
     function renderAggregatedProfiling(heads, data) {
@@ -483,38 +335,192 @@
       document.body.appendChild(document.createElement("p"));
     }
 
-    function processConsoleLog(content) {
-      let results;
-      if (content.startsWith('{"cat"')) {
-        let results = JSON.parse(content.replace(/,$/, ""));
-        let args = results["args"];
-        if ("provider" in args) {
-          let shape = /(\"input_type_shape.*),\"thread_scheduling_stats\"/.exec(content);
-          ortProfilingData.push([
-            ortProfilingIndex++,
-            args["op_name"],
-            parseInt(results["dur"]) / unitConversionFactor,
-            shape[1],
-            args["provider"],
-          ]);
+    function renderTask(task, data) {
+      let taskElement = document.createElement("p");
+      document.body.appendChild(taskElement);
+      taskElement.innerText = `[${task} results]`;
+
+      let resultElement = document.createElement("p");
+      document.body.appendChild(resultElement);
+      resultElement.id = "result";
+      let result = {};
+
+      if (task === "conformance") {
+        result["result"] = compare(data[0], data[1]);
+
+        for (let i = 0; i < data.length; i++) {
+          console.info(data[i]);
         }
-      } else if (content.startsWith("[profiling]")) {
-        results = /\[profiling\] kernel \".*\[(.*)\].*\" (input.*), execution time\: (\d+) ns/.exec(content);
-        if (results) {
-          webgpuProfilingData.push([
-            webgpuProfilingIndex++,
-            results[1],
-            parseInt(results[3]) / unitConversionFactor,
-            results[2],
-          ]);
+      } else if (task === "performance") {
+        let details = data.join(", ");
+        let detailsElement = document.createElement("p");
+        document.body.appendChild(detailsElement);
+        detailsElement.innerText = details;
+
+        result["first"] = data[0];
+        data.shift();
+        let totalTime = getSum(data);
+        let averageTime = parseFloat((totalTime / data.length).toFixed(2));
+        result["average"] = averageTime;
+        result["best"] = Math.min(...data);
+      }
+
+      if (task === "conformance" || task === "performance") {
+        resultElement.innerText = JSON.stringify(result);
+        return;
+      }
+
+      // profiling
+      if (task.includes("Profiling")) {
+        resultElement.innerText = `${data[data.length - 1]}ms`;
+        if (task === "ortProfiling") {
+          renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], ortProfilingData);
         }
-      } else if (content.includes("[artifact]")) {
-        results = /\[artifact\] key: (.*), programName\: (.*)/.exec(content);
-        if (results) {
-          artifactData.push([artifactIndex++, results[1], results[2]]);
+        if (task === "webgpuProfiling") {
+          renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData);
+          renderData(["Index", "Kernel", "Time (ms)", "Shape"], webgpuProfilingData);
         }
       }
-      originConsoleLog(content);
+
+      if (task === "artifact") {
+        renderData(["Index", "Key", "programName"], artifactData);
+      }
+    }
+
+    // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
+    // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
+    async function runTask(task, ep) {
+      let session;
+      let sessionStartTime = performance.now();
+      let times = [];
+      let totalTime = 0;
+
+      const getModelStartTime = performance.now();
+      const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
+      console.info(`${elapsedTime}ms was used to get model`);
+
+      // set option
+      const option = {
+        executionProviders: [
+          {
+            name: ep,
+            deviceType: deviceType,
+          },
+        ],
+        graphOptimizationLevel: optLevel,
+      };
+
+      if (ep === "webgpu" && !enableReadback && task !== "conformance") {
+        option.preferredOutputLocation = "gpu-buffer";
+      }
+
+      if (ep === "webgpu") {
+        option.preferredLayout = layout;
+      }
+
+      if (ep === "webnn" && deviceType === 'cpu') {
+        option.numThreads = webnnNumThreads;
+      }
+
+      if (ep === "webnn" || getFreeDimensionOverrides) {
+        option.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
+      }
+
+      // Set env
+      ort.env.wasm.numThreads = wasmThreads;
+      ort.env.wasm.simd = true;
+
+      if (enableDebug) {
+        ort.env.debug = true;
+      }
+      if (logLevel) {
+        ort.env.logLevel = logLevel;
+      }
+      if (task === "trace") {
+        ort.env.trace = true;
+      }
+      if (ep === "webnn") {
+        ort.env.wasm.proxy = true;
+      }
+      if (task === "artifact") {
+        ort.env.debug = true;
+        ort.env.logLevel = "info";
+        warmupTimes = 0;
+        runTimes = 1;
+      }
+
+      // create session
+      if (task != "ortProfiling") {
+        const sessionCreateStartTime = performance.now();
+        session = await createSession(option);
+        if (feeds === undefined) {
+          feeds = getFeeds(session, modelName);
+        }
+        const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
+        console.info(`${elapsedTime}ms was used to create session`);
+      }
+
+      // run a task
+      for (let i = 0; i < warmupTimes + runTimes; i++) {
+        if (!sessionStartTime) {
+          sessionStartTime = performance.now();
+        }
+        reportStatus(`Running task ${task} ${i} ...`);
+        if (i === warmupTimes && task === "ortProfiling") {
+          option.enableProfiling = true;
+        }
+
+        if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
+          ort.env.webgpu.profilingMode = "default";
+        }
+
+        if (task === "ortProfiling") {
+          const sessionCreateStartTime = performance.now();
+          session = await createSession(option);
+          feeds = getFeeds(session, modelName);
+          const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
+          console.info(`${elapsedTime}ms was used to create session`);
+        }
+
+        let results;
+        if (ep === "webnn") {
+          // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
+          results = await session.run(clone(feeds));
+        } else {
+          results = await session.run(feeds);
+          if (ep === "webgpu" && !enableReadback && task !== "conformance") {
+            await ort.env.webgpu.device.queue.onSubmittedWorkDone();
+          }
+        }
+        if (task === "conformance") {
+          let result = results[session.outputNames[0]]["data"];
+          session.release();
+          return result;
+        }
+        if (i === 0 || i >= warmupTimes) {
+          const elapsedTime = parseFloat((performance.now() - sessionStartTime).toFixed(2));
+          times.push(elapsedTime);
+        }
+        sessionStartTime = null;
+
+        if (i === warmupTimes && task === "ortProfiling") {
+          session.endProfiling();
+          session.release();
+          break;
+        }
+
+        if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
+          ort.env.webgpu.profilingMode = "";
+          break;
+        }
+      }
+
+      // release session
+      if (task != "ortProfiling") {
+        session.release();
+      }
+
+      return times;
     }
 
     main();
