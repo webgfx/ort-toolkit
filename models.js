@@ -31,6 +31,19 @@ const models =
       'm2m100-encoder': 'm2m100-encoder',
       // from teams
       'mobilenetv2-12': 'img224',
+
+      //https://huggingface.co/webml/models/tree/main
+      'realesrgan-t1024': 'realesrgan',
+      'realesrgan-t512': 'realesrgan',
+      'realesrgan-t256': 'realesrgan',
+      'realesrgan-t128': 'realesrgan',
+      'realesrgan-t64': 'realesrgan',
+      'realesrgan-t1024-f16': 'realesrgan',
+      'realesrgan-t512-f16': 'realesrgan',
+      'realesrgan-t256-f16': 'realesrgan',
+      'realesrgan-t128-f16': 'realesrgan',
+      'realesrgan-t64-f16': 'realesrgan',
+
       // webnn
       'resnet50-v2-7': 'img224',
 
@@ -192,6 +205,13 @@ function getFeeds(session, modelName) {
   if (inputs === 'm2m100-encoder') {
     feeds['input_ids'] = getTensor('int64', 99n, [1, encSeqLen]);
     feeds['attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+  }
+
+  if (inputs === 'realesrgan') {
+    const modelInfo = modelName.split('-');
+    const tileSize = parseInt(modelInfo[1].replace('t', ''));
+    const dataType = modelName.endsWith('f16') ? '16' : '32';
+    feeds[`in_image_float${dataType}_rgb01`] = getTensor(`float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
   }
 
   if (inputs === 'sam-b-vision-encoder') {
