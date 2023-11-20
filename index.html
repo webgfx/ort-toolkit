@@ -136,7 +136,16 @@
         return await ort.InferenceSession.create(modelUrl, option);
       } else {
         // For WebNN, we need a new model buffer everytime as it's in worker thread
-        return await ort.InferenceSession.create(await getModelOPFS(modelName, modelUrl, updateModel), option);
+        let modelBuffer;
+        if (updateModel) {
+          modelBuffer = await getModelOPFS(modelName, modelUrl, true);
+        } else {
+          modelBuffer = await getModelOPFS(modelName, modelUrl, false);
+          if (modelBuffer.byteLength < 300) {
+            modelBuffer = await getModelOPFS(modelName, modelUrl, true);
+          }
+        }
+        return await ort.InferenceSession.create(modelBuffer, option);
       }
     }
 
@@ -420,7 +429,7 @@
         option.preferredLayout = layout;
       }
 
-      if (ep === "webnn" && deviceType === 'cpu') {
+      if (ep === "webnn" && deviceType === "cpu") {
         option.executionProviders[0].numThreads = webnnNumThreads;
       }
 

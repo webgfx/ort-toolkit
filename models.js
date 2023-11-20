@@ -3,6 +3,8 @@ const models =
       // daily test
       // tjs/albert-base-v2/onnx/model.onnx. TODO: NaN
       'albert-base-v2': 'bert64',
+      // https://huggingface.co/Xenova/albert-base-v2/tree/main/onnx
+      'albert-base-v2-i8': 'bert64',
       // tjs/facebook/bart-large-cnn/onnx/encoder_model.onnx
       'bart-large-cnn-encoder': 'bert64',
       // tjs/bert-base-cased/onnx/model.onnx
@@ -26,13 +28,18 @@ const models =
       // webnn
       'emotion-ferplus-8': {'Input3': ['float32', 'random', [1, 1, 64, 64]]},
       // tjs/gpt2/onnx/decoder_model_merged.onnx. TODO: NaN
-      'gpt2': 'llm-decoder',
+      'gpt2-decoder': 'llm-decoder',
       // https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx
       'm2m100-encoder': 'm2m100-encoder',
       // from teams
       'mobilenetv2-12': 'img224',
+      // https://huggingface.co/webml/models/tree/main
+      // not sure if its really 12
+      'mobilenetv2-12-f16': 'img224-f16',
+      // https://huggingface.co/webml/models/tree/main
+      'mobilenetv2-12-i8': 'img224',
 
-      //https://huggingface.co/webml/models/tree/main
+      // https://huggingface.co/webml/models/tree/main
       'realesrgan-t1024': 'realesrgan',
       'realesrgan-t512': 'realesrgan',
       'realesrgan-t256': 'realesrgan',
@@ -62,11 +69,14 @@ const models =
       models/sam_vit_h_4b8939.pth --output models/sam-h-encoder.onnx --model-type vit_h --use-preprocess
       */
       'sam-b-decoder': 'sam-decoder',  // TODO: conformance fails
+      // https://huggingface.co/webml/models/blob/main/fp16/segment-anything-vit-h-static-shapes-origin-im-size-initializer-optimized-float16.onnx
+      'sam-h-decoder-f16': 'sam-decoder-f16',
+
       'sam-b-encoder': 'sam-encoder',
 
-      'sd-vae-decoder': 'sd-vae-decoder',
-      'sd-vae-decoder-f16': 'sd-vae-decoder-f16',
-      'sd-vae-encoder': 'sd-vae-encoder',
+      'sd15-vae-decoder': 'sd-vae-decoder',
+      'sd21-vae-decoder-f16': 'sd-vae-decoder-f16',
+      'sd15-vae-encoder': 'sd-vae-encoder',
 
       // tjs/t5-small/onnx/decoder_model_merged.onnx
       't5-small-decoder': 't5-decoder',
@@ -89,9 +99,10 @@ const models =
       // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN.
       // sd-vae-decoder-f16: sd2.1-inpainting-vae-decoder-float16-zeroed-weights from WebNN.
       // The rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
-      'sd-text-encoder': 'sd-text-encoder',  // Failed to run JSEP kernel
-      'sd-unet-f16': 'sd-unet-f16',          // RangeError: offset is out of bounds
-
+      'sd15-text-encoder': 'sd-text-encoder',  // Failed to run JSEP kernel
+      'sd15-unet-f16': 'sd-unet-f16',          // RangeError: offset is out of bounds
+      // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/blob/main/vae_encoder/model.onnx
+      'sd21-vae-encoder': 'sd-vae-encoder',
 
       // Deprecated
       // webnn. If the value is set to 0.5, conformance test would fail.
@@ -166,6 +177,14 @@ function getFeeds(session, modelName) {
     feeds[inputNames[0]] = getTensor('float32', 'random', [1, 3, 224, 224]);
   }
 
+  if (inputs === 'img224-f16') {
+    feeds[inputNames[0]] = getTensor('float16', 'random', [1, 3, 224, 224]);
+  }
+
+  if (inputs === 'img224-i8') {
+    feeds[inputNames[0]] = getTensor('int8', 'random', [1, 3, 224, 224]);
+  }
+
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2') {
       decSeqLen = 8;
@@ -219,12 +238,22 @@ function getFeeds(session, modelName) {
   }
 
   if (inputs === 'sam-decoder') {
-    feeds['image_embeddings'] = getTensor('float32', 0.5, [1, 256, 64, 64]);
-    feeds['point_coords'] =
-        new ort.Tensor(new Float32Array([327.1111, 426.875, 241.77777, 341.5, 398.22223, 498.02084]), [1, 3, 2]);
-    feeds['point_labels'] = new ort.Tensor(new Float32Array([0., 2., 3.]), [1, 3]);
-    feeds['mask_input'] = getTensor('float32', 0., [1, 1, 256, 256]);
-    feeds['has_mask_input'] = getTensor('float32', 1., [1]);
+    feeds['image_embeddings'] = getTensor('float32', 'random', [1, 256, 64, 64]);
+    feeds['point_coords'] = getTensor('float32', 'random', [1, 2, 2]);
+    feeds['point_labels'] = getTensor('float32', 'random', [1, 2]);
+    feeds['mask_input'] = getTensor('float32', 'random', [1, 1, 256, 256]);
+    feeds['has_mask_input'] = getTensor('float32', 'random', [1]);
+    if (inputNames.includes('orig_im_size')) {
+      feeds['orig_im_size'] = new ort.Tensor(new Float32Array([512., 512.]), [2]);
+    }
+  }
+
+  if (inputs === 'sam-decoder-f16') {
+    feeds['image_embeddings'] = getTensor('float16', 'random', [1, 256, 64, 64]);
+    feeds['point_coords'] = getTensor('float16', 'random', [1, 2, 2]);
+    feeds['point_labels'] = getTensor('float16', 'random', [1, 2]);
+    feeds['mask_input'] = getTensor('float16', 'random', [1, 1, 256, 256]);
+    feeds['has_mask_input'] = getTensor('float16', 'random', [1]);
     if (inputNames.includes('orig_im_size')) {
       feeds['orig_im_size'] = new ort.Tensor(new Float32Array([512., 512.]), [2]);
     }
@@ -335,6 +364,8 @@ function getTensor(type, data, dims) {
   let typedArray;
   if (type === 'bool') {
     return new ort.Tensor(type, [data], [1]);
+  } else if (type === 'int8') {
+    typedArray = Int8Array;
   } else if (type === 'uint16') {
     typedArray = Uint16Array;
   } else if (type === 'float16') {
