@@ -477,7 +477,7 @@
           sessionStartTime = performance.now();
         }
         reportStatus(`Running task ${task} ${i} ...`);
-        if (i === warmupTimes && task === "ortProfiling") {
+        if (/* i === warmupTimes && */task === "ortProfiling") {
           option.enableProfiling = true;
         }
 
@@ -514,7 +514,7 @@
         }
         sessionStartTime = null;
 
-        if (i === warmupTimes && task === "ortProfiling") {
+        if (/* i === warmupTimes && */task === "ortProfiling") {
           session.endProfiling();
           session.release();
           break;
