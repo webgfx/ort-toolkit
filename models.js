@@ -69,14 +69,15 @@ const models =
       models/sam_vit_h_4b8939.pth --output models/sam-h-encoder.onnx --model-type vit_h --use-preprocess
       */
       'sam-b-decoder': 'sam-decoder',  // TODO: conformance fails
+      'sam-b-encoder': 'sam-encoder',
       // https://huggingface.co/webml/models/blob/main/fp16/segment-anything-vit-h-static-shapes-origin-im-size-initializer-optimized-float16.onnx
       'sam-h-decoder-f16': 'sam-decoder-f16',
 
-      'sam-b-encoder': 'sam-encoder',
-
       'sd15-vae-decoder': 'sd-vae-decoder',
-      'sd21-vae-decoder-f16': 'sd-vae-decoder-f16',
       'sd15-vae-encoder': 'sd-vae-encoder',
+
+      'sd21-vae-decoder-f16': 'sd-vae-decoder-f16',
+      'sd21-vae-encoder': 'sd-vae-encoder',
 
       // tjs/t5-small/onnx/decoder_model_merged.onnx
       't5-small-decoder': 't5-decoder',
@@ -97,12 +98,15 @@ const models =
       'm2m100-decoder': 'm2m100-decoder',
 
       // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN.
-      // sd-vae-decoder-f16: sd2.1-inpainting-vae-decoder-float16-zeroed-weights from WebNN.
       // The rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
       'sd15-text-encoder': 'sd-text-encoder',  // Failed to run JSEP kernel
       'sd15-unet-f16': 'sd-unet-f16',          // RangeError: offset is out of bounds
-      // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/blob/main/vae_encoder/model.onnx
-      'sd21-vae-encoder': 'sd-vae-encoder',
+
+      // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/blob/main/
+      // sd-vae-decoder-f16: sd2.1-inpainting-vae-decoder-float16-zeroed-weights from WebNN.
+      'sd21-text-encoder': 'sd-text-encoder',
+      'sd21-unet': 'sd-unet',
+
 
       // Deprecated
       // webnn. If the value is set to 0.5, conformance test would fail.
@@ -265,6 +269,12 @@ function getFeeds(session, modelName) {
 
   if (inputs === 'sd-text-encoder') {
     feeds['input_ids'] = getTensor('int32', 99, [1, encSeqLen]);
+  }
+
+  if (inputs === 'sd-unet') {
+    feeds['sample'] = getTensor('float32', 1, [1, 4, 64, 64]);
+    feeds['timestep'] = getTensor('int64', 1n, [1]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, 77, 768]);
   }
 
   if (inputs === 'sd-unet-f16') {
