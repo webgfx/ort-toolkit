@@ -389,7 +389,7 @@ function getTensor(type, data, dims) {
   }
 
   let _data;
-  if (Array.isArray(data)) {
+  if (Array.isArray(data) || ArrayBuffer.isView(data)) {
     _data = data;
   } else {
     let size = 1;
