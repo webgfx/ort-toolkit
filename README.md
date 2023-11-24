@@ -1,12 +1,13 @@
 # ort-toolkit
-## Download a model
-* on Linux
-* set https_proxy to proxy-us
-* pip3 install onnx onnxruntime
-* git clone https://github.com/xenova/transformers.js/
-* download a model via for example "python -m scripts.convert --model_id apple/mobilevit-small"
+
+Visit https://webatintel.github.io/ort-toolkit for more details
+
+## Run WebGPU
+
+- Start Chrome with "--enable-dawn-features=allow_unsafe_apis,use_dxc --enable-features=SharedArrayBuffer"
+- Example: https://webatintel.github.io/ort-toolkit/?tasks=performance&ep=webgpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
 
 ## Run WebNN
-* Comment out "SHELL:-s MAXIMUM_MEMORY=4294967296" in onnxruntime/cmake/onnxruntime_webassembly.cmake
-* Run browser with "--enable-experimental-web-platform-features --enable-blink-test-features --enable-features=WebnnMojoContext --enable-machine-learning-neural-network-api"
-* Gaps. Browser implementation: computeSync and buildSync, more ops
+
+- Start Chrome with "--enable-features=MachineLearningNeuralNetworkService --enable-experimental-web-platform-features"
+- Example: https://webatintel.github.io/ort-toolkit/?tasks=performance&ep=webnn-gpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
