@@ -114,6 +114,8 @@
     const enableVerbose = getParam("enableVerbose") === "true" || false;
     const logLevel = getParam("logLevel");
     const optLevel = getParam("optLevel") || "all"; // basic, all, disabled, extended
+    const ortVersion = getParam("ortVersion") || "lastest";
+    const trace = getParam("trace") === "true" || false;
 
     // globals
     let artifactData = [];
@@ -185,7 +187,7 @@
         if (ortUrl) {
           urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
         } else {
-          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@latest/dist/${ortFile}`);
+          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/${ortFile}`);
         }
       }
 
@@ -477,7 +479,7 @@
           sessionStartTime = performance.now();
         }
         reportStatus(`Running task ${task} ${i} ...`);
-        if (/* i === warmupTimes && */task === "ortProfiling") {
+        if (/* i === warmupTimes && */ task === "ortProfiling") {
           option.enableProfiling = true;
         }
 
@@ -514,7 +516,7 @@
         }
         sessionStartTime = null;
 
-        if (/* i === warmupTimes && */task === "ortProfiling") {
+        if (/* i === warmupTimes && */ task === "ortProfiling") {
           session.endProfiling();
           session.release();
           break;
