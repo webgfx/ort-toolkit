@@ -17,6 +17,8 @@ const models =
       'densenet-9': 'img224',
       // tjs/facebook/detr-resnet-50/onnx/model.onnx. TODO: conformance fails
       'detr-resnet-50': 'img224',
+      // https://huggingface.co/Xenova/detr-resnet-50/tree/main/onnx/model.onnx
+      'detr-resnet-50-2': 'detr-resnet-50-2',
       // tjs/facebook/dino-vitb16/onnx/model.onnx
       'dino-vitb16': 'img224',
       // tjs/distilbert-base-uncased/onnx/model.onnx
@@ -176,6 +178,12 @@ function getFeeds(session, modelName) {
     feeds['pixel_values'] = getTensor('float32', 99, [1, 3, 224, 224]);
     feeds['attention_mask'] = getTensor('int64', 1n, [1, 77]);
   }
+
+  if (inputs === 'detr-resnet-50-2') {
+    feeds['pixel_values'] = getTensor('float32', 'random', [1, 3, 800, 800]);
+    feeds['pixel_mask'] = getTensor('int64', 1n, [1, 64, 64]);
+  }
+
 
   if (inputs === 'img224') {
     feeds[inputNames[0]] = getTensor('float32', 'random', [1, 3, 224, 224]);
