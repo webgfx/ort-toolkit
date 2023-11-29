@@ -41,7 +41,7 @@
       modelUrl=[hf|server|wp-27|[url]]. Note that if you provide the url, you may fail to execute the modelName as the
       inputs are not defined well.
     </li>
-    <li>ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime</li>
+    <li>ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime or ortUrl=gh/20231129</li>
     <li>runTimes: Run times</li>
     <li>
       tasks=[task0,task1,task2]: tasks to run, split by ','. Candidates are 'conformance', 'performance',
@@ -105,17 +105,18 @@
 
     // for developers
     const disableBuffer = getParam("disableBuffer") === "true" || false;
+    const disableReadback = getParam("disableReadback") === "true" || false;
+
     let enableDebug = getParam("enableDebug") === "true" || false;
     let enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
     // Temporarily set enableFreeDimensionOverrides to true by default
     enableFreeDimensionOverrides = true;
 
-    const enableReadback = getParam("enableReadback") === "true" || false;
+    const enableTrace = getParam("enableTrace") === "true" || false;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
     const logLevel = getParam("logLevel");
     const optLevel = getParam("optLevel") || "all"; // basic, all, disabled, extended
     const ortVersion = getParam("ortVersion") || "latest";
-    const trace = getParam("trace") === "true" || false;
 
     // globals
     let artifactData = [];
@@ -180,12 +181,20 @@
       if (ep === "webnn") {
         ortFiles = ["ort.min.js", "ort.webgpu.min.js"];
       } else {
-        ortFiles = ["ort.webgpu.min.js"];
+        if (enableTrace) {
+          ortFiles = ["ort.webgpu.js"];
+        } else {
+          ortFiles = ["ort.webgpu.min.js"];
+        }
       }
 
       for (let ortFile of ortFiles) {
         if (ortUrl) {
-          urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
+          if (ortUrl.startsWith('gh/')) {
+            urls.push(`https://webatintel.github.io/ort-web/${ortUrl.replace('gh/', '')}/ort.webgpu.min.js`);
+          } else {
+            urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
+          }
         } else {
           urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/${ortFile}`);
         }
@@ -423,7 +432,7 @@
         graphOptimizationLevel: optLevel,
       };
 
-      if (ep === "webgpu" && !enableReadback && task !== "conformance") {
+      if (ep === "webgpu" && disableReadback && task !== "conformance") {
         option.preferredOutputLocation = "gpu-buffer";
       }
 
@@ -449,7 +458,7 @@
       if (logLevel) {
         ort.env.logLevel = logLevel;
       }
-      if (task === "trace") {
+      if (enableTrace) {
         ort.env.trace = true;
       }
       if (ep === "webnn") {
@@ -501,7 +510,7 @@
           results = await session.run(clone(feeds));
         } else {
           results = await session.run(feeds);
-          if (ep === "webgpu" && !enableReadback && task !== "conformance") {
+          if (ep === "webgpu" && disableReadback && task !== "conformance") {
             await ort.env.webgpu.device.queue.onSubmittedWorkDone();
           }
         }
