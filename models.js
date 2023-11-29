@@ -152,8 +152,10 @@ function getFeeds(session, modelName) {
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
-    if ([].indexOf(modelName) >= 0) {
-      decSeqLen = 1;
+    if (modelName === 'bert-base-cased') {
+      decSeqLen = 9;
+    } else if (modelName === 'distilbert-base-uncased') {
+      decSeqLen = 50;
     }
     const dtype = inputs === 'bert' ? 'int32' : 'int64';
     const value = inputs === 'bert' ? 99 : 99n;
