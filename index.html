@@ -108,10 +108,7 @@
     const disableReadback = getParam("disableReadback") === "true" || false;
 
     let enableDebug = getParam("enableDebug") === "true" || false;
-    let enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
-    // Temporarily set enableFreeDimensionOverrides to true by default
-    enableFreeDimensionOverrides = true;
-
+    const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
     const enableTrace = getParam("enableTrace") === "true" || false;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
     const logLevel = getParam("logLevel");
@@ -444,7 +441,7 @@
         option.executionProviders[0].numThreads = webnnNumThreads;
       }
 
-      if (ep === "webnn" || getFreeDimensionOverrides) {
+      if (ep === "webnn" || enableFreeDimensionOverrides) {
         option.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
       }
 
