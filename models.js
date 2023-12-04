@@ -207,7 +207,7 @@ function getFeeds(session, modelName) {
   }
 
   if (inputs === 'llm-decoder') {
-    if (modelName === 'gpt2') {
+    if (modelName === 'gpt2-decoder') {
       decSeqLen = 8;
     } else if (modelName === 'distilgpt2') {
       decSeqLen = 16;
@@ -313,7 +313,7 @@ function getFeeds(session, modelName) {
   }
 
   if (inputs === 't5-decoder') {
-    decSeqLen = 1;
+    decSeqLen = 128;
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 512]);
     const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
