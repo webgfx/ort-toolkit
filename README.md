@@ -1,6 +1,12 @@
 # ort-toolkit
 
-This is a toolkit to run ONNX Runtime tasks, including conformance, performance, webgpuProfiling, ortProfiling and so on.
+This is a toolkit to run ONNX Runtime tasks, including artifact, conformance, performance, webgpuProfiling, ortProfiling and so on.
+
+- artifact: Get the uniform info
+- conformance: Compare the result with wasm backend
+- performance: Performance test
+- webgpuProfiling: Get execution time of each op
+- ortProfiling: Understand the Execution Provider for each op
 
 ## Start Chrome Browser
 
@@ -47,4 +53,8 @@ Some parameters are supported in url, and you may use them as 'index.html?key0=v
 - wasmThreads: wasm threads number
 - webnnNumThreads: WebNN numThreads for cpu
 
-Example: https://wp-27.sh.intel.com/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
+## Examples
+
+- Conformance
+
+  https://wp-27.sh.intel.com/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
