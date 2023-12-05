@@ -2,10 +2,9 @@
 
 <body>
   <h1 align="center">ONNX Runtime Toolkit</h1>
-  <h2 align="center" id="status"></h2>
-  <text>
-    <b>Test Results</b>
-  </text>
+  <h2 align="center" id="status">Test Status</h2>
+  <h3 align="center">Test Results</h3>
+
   <link href="sortable.min.css" rel="stylesheet" />
   <script src="sortable.min.js"></script>
   <style>
@@ -183,13 +182,19 @@
           ]);
         }
       } else if (content.startsWith("[profiling]")) {
-        results = /\[profiling\] kernel \".*\[(.*)\].*\" (input.*), execution time\: (\d+) ns/.exec(content);
+        results = /\[profiling\] kernel \".*\[(.*)\].*\|(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
+        let kernelName = "";
+        if (results[1] === results[2]) {
+          kernelName = results[1];
+        } else {
+          kernelName = `${results[1]}/${results[2]}`;
+        }
         if (results) {
           webgpuProfilingData.push([
             webgpuProfilingIndex++,
-            results[1],
-            parseInt(results[3]) / unitConversionFactor,
-            results[2],
+            kernelName,
+            parseInt(results[4]) / unitConversionFactor,
+            results[3],
           ]);
         }
       } else if (content.includes("[artifact]")) {
@@ -304,10 +309,12 @@
 
     function renderTask(task, data) {
       let taskElement = document.createElement("p");
+      taskElement.align = "center";
       document.body.appendChild(taskElement);
       taskElement.innerText = `[${task} results]`;
 
       let resultElement = document.createElement("p");
+      resultElement.align = "center";
       document.body.appendChild(resultElement);
       resultElement.id = "result";
       let result = {};
