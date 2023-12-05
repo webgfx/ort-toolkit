@@ -26,13 +26,19 @@ const models = {
   // tjs/distilbert-base-uncased/onnx/model.onnx
   'distilbert-base-uncased': ['bert64', {batch_size: 1, sequence_length: 50}],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
-  'distilgpt2': ['llm-decoder', {batch_size: 1, sequence_length: 16}],
+  'distilgpt2-decoder': ['llm-decoder', {batch_size: 1, sequence_length: 16}],
+  // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
+  // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 64, sequence_length: 16}
+  'distilgpt2-decoder-merged': ['llm-decoder'],
   // webnn
   'efficientnet-lite4-11': {'images:0': ['float32', 'random', [1, 224, 224, 3]]},
   // webnn
   'emotion-ferplus-8': {Input3: ['float32', 'random', [1, 1, 64, 64]]},
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
   'gpt2-decoder': ['llm-decoder', {batch_size: 1, sequence_length: 8}],
+  // https://huggingface.co/gpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
+  // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 16, sequence_length: 8}
+  'gpt2-decoder-merged': ['llm-decoder'],
   // https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx
   'm2m100-encoder': ['m2m100-encoder', {batch_size: 1, encoder_sequence_length: 128}],
   // from teams
@@ -88,6 +94,14 @@ const models = {
 
   // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model.onnx
   't5-small-decoder': ['t5-decoder', {batch_size: 1, decoder_sequence_length: 128, encoder_sequence_length: 128}],
+  // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
+  /*
+  {
+    batch_size: 1, decoder_sequence_length: 128, encoder_sequence_length: 128, encoder_sequence_length_out: 16,
+        past_decoder_sequence_length: 16
+  }
+  */
+  't5-small-decoder-merged': ['t5-decoder'],
   // tjs/t5-small/onnx/encoder_model.onnx
   't5-small-encoder': ['t5-encoder', {batch: 1, sequence: 128}],
 
@@ -209,7 +223,7 @@ function getFeeds(session, modelName) {
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2-decoder') {
       decSeqLen = 8;
-    } else if (modelName === 'distilgpt2') {
+    } else if (modelName in ['distilgpt2-decoder', 'distilgpt2-decoder-merged']) {
       decSeqLen = 16;
     }
     for (var k in inputNames) {
@@ -220,7 +234,10 @@ function getFeeds(session, modelName) {
     }
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['attention_mask'] = getTensor('int64', 1n, [1, decSeqLen]);
-    // feeds['use_cache_branch'] = getTensor('bool', false);
+
+    if (modelName.endsWith('merged')) {
+      feeds['use_cache_branch'] = getTensor('bool', false);
+    }
   }
 
   if (inputs === 'm2m100-decoder') {
@@ -331,7 +348,9 @@ function getFeeds(session, modelName) {
         feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
       }
     }
-    // feeds['use_cache_branch'] = getTensor('bool', true);
+    if (modelName.endsWith('merged')) {
+      feeds['use_cache_branch'] = getTensor('bool', true);
+    }
   }
 
   if (inputs === 't5-encoder') {
