@@ -58,7 +58,14 @@
     const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
     const enableTrace = getParam("enableTrace") === "true" || false;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
+
+    // 'verbose', 'info', 'warning', 'error', 'fatal'
     const logLevel = getParam("logLevel");
+    //Log severity level. Applies to session load, initialization, etc. 0:Verbose, 1:Info, 2:Warning. 3:Error, 4:Fatal. Default is 2.
+    const logSeverityLevel = getParam("logSeverityLevel") || 2;
+    //VLOG level if DEBUG build and session_log_severity_level is 0. Applies to session load, initialization, etc. Default is 0.
+    const logVerbosityLevel = getParam("logVerbosityLevel") || 0;
+
     const optLevel = getParam("optLevel") || "all"; // basic, all, disabled, extended
     const ortVersion = getParam("ortVersion") || "dev";
 
@@ -78,9 +85,9 @@
     const originConsoleLog = console.log;
     console.log = processConsoleLog;
 
-    async function createSession(option) {
+    async function createSession(sessionOptions) {
       if (disableBuffer) {
-        return await ort.InferenceSession.create(modelUrl, option);
+        return await ort.InferenceSession.create(modelUrl, sessionOptions);
       } else {
         // For WebNN, we need a new model buffer everytime as it's in worker thread
         let modelBuffer;
@@ -92,7 +99,7 @@
             modelBuffer = await getModelOPFS(modelName, modelUrl, true);
           }
         }
-        return await ort.InferenceSession.create(modelBuffer, option);
+        return await ort.InferenceSession.create(modelBuffer, sessionOptions);
       }
     }
 
@@ -373,8 +380,8 @@
       const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
       console.info(`${elapsedTime}ms was used to get model`);
 
-      // set option
-      const option = {
+      // set sessionOptions
+      const sessionOptions = {
         executionProviders: [
           {
             name: ep,
@@ -382,22 +389,24 @@
           },
         ],
         graphOptimizationLevel: optLevel,
+        logSeverityLevel: logSeverityLevel,
+        logVerbosityLevel: logVerbosityLevel,
       };
 
       if (ep === "webgpu" && disableReadback && task !== "conformance") {
-        option.preferredOutputLocation = "gpu-buffer";
+        sessionOptions.preferredOutputLocation = "gpu-buffer";
       }
 
       if (ep === "webgpu") {
-        option.preferredLayout = layout;
+        sessionOptions.preferredLayout = layout;
       }
 
       if (ep === "webnn" && deviceType === "cpu") {
-        option.executionProviders[0].numThreads = webnnNumThreads;
+        sessionOptions.executionProviders[0].numThreads = webnnNumThreads;
       }
 
       if (ep === "webnn" || enableFreeDimensionOverrides) {
-        option.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
+        sessionOptions.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
       }
 
       // Set env
@@ -426,7 +435,7 @@
       // create session
       if (task != "ortProfiling") {
         const sessionCreateStartTime = performance.now();
-        session = await createSession(option);
+        session = await createSession(sessionOptions);
         if (feeds === undefined) {
           feeds = getFeeds(session, modelName);
         }
@@ -441,7 +450,7 @@
         }
         reportStatus(`Running task ${task} ${i} ...`);
         if (/* i === warmupTimes && */ task === "ortProfiling") {
-          option.enableProfiling = true;
+          sessionOptions.enableProfiling = true;
         }
 
         if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
@@ -450,18 +459,22 @@
 
         if (task === "ortProfiling") {
           const sessionCreateStartTime = performance.now();
-          session = await createSession(option);
+          session = await createSession(sessionOptions);
           feeds = getFeeds(session, modelName);
           const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
           console.info(`${elapsedTime}ms was used to create session`);
         }
 
         let results;
+        const runOptions = {
+          logSeverityLevel: logSeverityLevel,
+          logVerbosityLevel: logVerbosityLevel,
+        };
         if (ep === "webnn") {
           // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          results = await session.run(clone(feeds));
+          results = await session.run(clone(feeds), runOptions);
         } else {
-          results = await session.run(feeds);
+          results = await session.run(feeds, runOptions);
           if (ep === "webgpu" && disableReadback && task !== "conformance") {
             await ort.env.webgpu.device.queue.onSubmittedWorkDone();
           }
