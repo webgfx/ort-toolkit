@@ -223,7 +223,7 @@ function getFeeds(session, modelName) {
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2-decoder') {
       decSeqLen = 8;
-    } else if (modelName in ['distilgpt2-decoder', 'distilgpt2-decoder-merged']) {
+    } else if (['distilgpt2-decoder', 'distilgpt2-decoder-merged'].indexOf(modelName) >= 0) {
       decSeqLen = 16;
     }
     for (var k in inputNames) {
