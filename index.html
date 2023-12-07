@@ -82,9 +82,12 @@
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
 
-    // Not sure why this doesn't work for WebNN
+    // This doesn't work for WebNN as it's in worker thread
     const originConsoleLog = console.log;
-    console.log = processConsoleLog;
+    console.log = function () {
+      processConsoleLog(arguments);
+      originConsoleLog.apply(this, arguments);
+    };
 
     async function createSession(sessionOptions) {
       if (disableBuffer) {
@@ -174,19 +177,20 @@
       }
     }
 
-    function processConsoleLog(content) {
+    function processConsoleLog(args) {
       let results;
+      const content = args[0];
       if (content.startsWith('{"cat"')) {
-        let results = JSON.parse(content.replace(/,$/, ""));
-        let args = results["args"];
-        if ("provider" in args) {
+        results = JSON.parse(content.replace(/,$/, ""));
+        let argsResult = results["args"];
+        if ("provider" in argsResult) {
           let shape = /(\"input_type_shape.*),\"thread_scheduling_stats\"/.exec(content);
           ortProfilingData.push([
             ortProfilingIndex++,
-            args["op_name"],
+            argsResult["op_name"],
             parseInt(results["dur"]) / unitConversionFactor,
             shape[1],
-            args["provider"],
+            argsResult["provider"],
           ]);
         }
       } else if (content.startsWith("[profiling]")) {
@@ -211,7 +215,6 @@
           artifactData.push([artifactIndex++, results[1], results[2]]);
         }
       }
-      originConsoleLog(content);
     }
 
     function renderAggregatedProfiling(heads, data) {
