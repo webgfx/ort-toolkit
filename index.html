@@ -81,13 +81,7 @@
     let warmupTimesLeft = warmupTimes;
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
-
-    // This doesn't work for WebNN as it's in worker thread
-    const originConsoleLog = console.log;
-    console.log = function () {
-      processConsoleLog(arguments);
-      originConsoleLog.apply(this, arguments);
-    };
+    let originConsoleLog;
 
     async function createSession(sessionOptions) {
       if (disableBuffer) {
@@ -136,7 +130,7 @@
       if (ep === "webnn") {
         ortFiles = ["ort.min.js", "ort.webgpu.min.js"];
       } else {
-        if (enableTrace) {
+        if (enableTrace || enableDebug) {
           ortFiles = ["ort.webgpu.js"];
         } else {
           ortFiles = ["ort.webgpu.min.js"];
@@ -194,19 +188,19 @@
           ]);
         }
       } else if (content.startsWith("[profiling]")) {
-        results = /\[profiling\] kernel \".*\[(.*)\].*\|(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
+        results = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
         let kernelName = "";
-        if (results[1] === results[2]) {
-          kernelName = results[1];
-        } else {
-          kernelName = `${results[1]}/${results[2]}`;
+        const kernelInfo = results[1].split('|');
+        kernelName = kernelInfo[1].split('_')[0];
+        if (kernelName !== kernelInfo[2]) {
+          kernelName = kernelInfo[2];
         }
         if (results) {
           webgpuProfilingData.push([
             webgpuProfilingIndex++,
             kernelName,
-            parseInt(results[4]) / unitConversionFactor,
-            results[3],
+            parseInt(results[3]) / unitConversionFactor,
+            results[2],
           ]);
         }
       } else if (content.includes("[artifact]")) {
@@ -380,6 +374,16 @@
       let times = [];
       let totalTime = 0;
 
+      // override console.log
+      if (task.includes("Profiling")) {
+        // This doesn't work for WebNN as it's in worker thread
+        originConsoleLog = console.log;
+        console.log = function () {
+          processConsoleLog(arguments);
+          originConsoleLog.apply(this, arguments);
+        };
+      }
+
       const getModelStartTime = performance.now();
       const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
       console.info(`${elapsedTime}ms was used to get model`);
@@ -458,7 +462,7 @@
         }
 
         if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
-          ort.env.webgpu.profilingMode = "default";
+          ort.env.webgpu.profiling = { mode: "default" };
         }
 
         if (task === "ortProfiling") {
@@ -501,7 +505,7 @@
         }
 
         if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
-          ort.env.webgpu.profilingMode = "";
+          ort.env.webgpu.profiling = { mode: "" };
           break;
         }
       }
@@ -509,6 +513,11 @@
       // release session
       if (task != "ortProfiling") {
         session.release();
+      }
+
+      // restore console.log
+      if (task.includes("Profiling")) {
+        console.log = originConsoleLog;
       }
 
       return times;
