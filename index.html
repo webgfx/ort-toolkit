@@ -16,8 +16,11 @@
     "use strict";
 
     // url parameters
-    const deviceType = getParam("deviceType") || "gpu";
     const ep = getParam("ep") || "webgpu";
+    let deviceType = getParam("deviceType") || "gpu";
+    if (ep === 'wasm') {
+      deviceType = 'cpu';
+    }
     let layout = getParam("layout");
     if (layout === null && ep === "webgpu") {
       layout = "NHWC";

@@ -49,6 +49,8 @@ const models = {
   // https://huggingface.co/webml/models/tree/main
   'mobilenetv2-12-i8': 'img224',
 
+  'mobilenetv3': 'mobilenetv3',
+
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
   'realesrgan-t512': 'realesrgan',
@@ -107,9 +109,11 @@ const models = {
 
   // webnn
   'tinyyolov2-8': [{image: ['float32', 'random', [1, 3, 416, 416]]}, {None: 1}],
-  // tjs/openai/whisper-tiny/onnx/decoder_model_merged.onnx
+  // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model.onnx
   'whisper-tiny-decoder': ['whisper-decoder', 'whisper-decoder'],
-  // tjs/openai/whisper-tiny/onnx/encoder_model.onnx
+  // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model_merged.onnx
+  'whisper-tiny-decoder-merged': ['whisper-decoder'],
+  // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/encoder_model.onnx
   'whisper-tiny-encoder': [
     {input_features: ['float32', 'random', [1, 80, 3000]]},
     {batch_size: 1, feature_size: 80, encoder_sequence_length: 3000}
@@ -168,7 +172,7 @@ function getFeeds(session, modelName) {
         feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
       }
     }
-    feeds['use_cache_branch'] = getTensor('bool', false);
+    feeds['use_cache_branch'] = getTensor('bool', true);
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, hiddendim]);
   }
@@ -236,7 +240,7 @@ function getFeeds(session, modelName) {
     feeds['attention_mask'] = getTensor('int64', 1n, [1, decSeqLen]);
 
     if (modelName.endsWith('merged')) {
-      feeds['use_cache_branch'] = getTensor('bool', false);
+      feeds['use_cache_branch'] = getTensor('bool', true);
     }
   }
 
@@ -262,6 +266,10 @@ function getFeeds(session, modelName) {
   if (inputs === 'm2m100-encoder') {
     feeds['input_ids'] = getTensor('int64', 99n, [1, encSeqLen]);
     feeds['attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+  }
+
+  if (inputs === 'mobilenetv3') {
+    feeds[inputNames[0]] = getTensor('float32', 'random', [1, 224, 224, 3]);
   }
 
   if (inputs === 'realesrgan') {
@@ -370,7 +378,9 @@ function getFeeds(session, modelName) {
         }
       }
     }
-    feeds['use_cache_branch'] = getTensor('bool', false);
+    if (modelName.endsWith('merged')) {
+      feeds['use_cache_branch'] = getTensor('bool', true);
+    }
   }
 
   if (isDict(inputs)) {
