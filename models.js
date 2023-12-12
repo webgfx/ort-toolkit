@@ -49,7 +49,8 @@ const models = {
   // https://huggingface.co/webml/models/tree/main
   'mobilenetv2-12-i8': 'img224',
 
-  'mobilenetv3': 'mobilenetv3',
+  // https://github.com/onnx/models/tree/main/Computer_Vision/mobilenetv3_small_100_Opset17_timm
+  'mobilenetv3-small-100': 'img224',
 
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
