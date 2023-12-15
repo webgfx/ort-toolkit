@@ -18,8 +18,8 @@
     // url parameters
     const ep = getParam("ep") || "webgpu";
     let deviceType = getParam("deviceType") || "gpu";
-    if (ep === 'wasm') {
-      deviceType = 'cpu';
+    if (ep === "wasm") {
+      deviceType = "cpu";
     }
     let layout = getParam("layout");
     if (layout === null && ep === "webgpu") {
@@ -143,7 +143,7 @@
       for (let ortFile of ortFiles) {
         if (ortUrl) {
           if (ortUrl.startsWith("gh/")) {
-            urls.push(`https://webatintel.github.io/ort-web/${ortUrl.replace("gh/", "")}/ort.webgpu.min.js`);
+            urls.push(`https://webatintel.github.io/ort-web/${ortUrl.replace("gh/", "")}/${ortFile}`);
           } else {
             urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
           }
@@ -193,8 +193,8 @@
       } else if (content.startsWith("[profiling]")) {
         results = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
         let kernelName = "";
-        const kernelInfo = results[1].split('|');
-        kernelName = kernelInfo[1].split('_')[0];
+        const kernelInfo = results[1].split("|");
+        kernelName = kernelInfo[1].split("_")[0];
         if (kernelName !== kernelInfo[2]) {
           kernelName = kernelInfo[2];
         }
