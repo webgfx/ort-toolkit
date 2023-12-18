@@ -378,7 +378,7 @@
       let totalTime = 0;
 
       // override console.log
-      if (task.includes("Profiling")) {
+      if (task.includes("Profiling") || task === "artifact") {
         // This doesn't work for WebNN as it's in worker thread
         originConsoleLog = console.log;
         console.log = function () {
