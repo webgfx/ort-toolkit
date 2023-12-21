@@ -194,10 +194,7 @@
         results = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
         let kernelName = "";
         const kernelInfo = results[1].split("|");
-        kernelName = kernelInfo[1].split("_")[0];
-        if (kernelName !== kernelInfo[2]) {
-          kernelName = kernelInfo[2];
-        }
+        kernelName = kernelInfo[1];
         if (results) {
           webgpuProfilingData.push([
             webgpuProfilingIndex++,
