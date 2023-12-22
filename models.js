@@ -23,6 +23,21 @@ const models = {
   'detr-resnet-50-2': 'detr-resnet-50-2',
   // tjs/facebook/dino-vitb16/onnx/model.onnx
   'dino-vitb16': ['img224', {batch_size: 1, num_channels: 3, height: 224, width: 224}],
+  // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model_merged.onnx
+  'distilbart-cnn-6-6-decoder-merged': [
+    {
+      'input_ids': ['int64', 99n, [1, 168]],
+      'encoder_attention_mask': ['int64', 1n, [1, 168]],
+      'encoder_hidden_states': ['float32', 1, [1, 168, 1024]]
+    },
+    {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
+  ],
+  // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/encoder_model.onnx
+  'distilbart-cnn-6-6-encoder': [
+    {'input_ids': ['int64', 99n, [1, 168]], 'attention_mask': ['int64', 1n, [1, 168]]},
+    {'batch_size': 1, 'encoder_sequence_length': 168}
+  ],
+
   // tjs/distilbert-base-uncased/onnx/model.onnx
   'distilbert-base-uncased': ['bert64', {batch_size: 1, sequence_length: 50}],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
@@ -32,6 +47,21 @@ const models = {
   'distilgpt2-decoder-merged': ['llm-decoder'],
   // webnn
   'efficientnet-lite4-11': {'images:0': ['float32', 'random', [1, 224, 224, 3]]},
+
+  // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/encoder_model.onnx
+  'flan-t5-small-encoder': [
+    {'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]]},
+    {'batch_size': 1, 'encoder_sequence_length': 128}
+  ],
+  // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model_merged.onnx
+  'flan-t5-small-decoder-merged': [
+    {
+      'input_ids': ['int64', 99n, [1, 128]],
+      'encoder_attention_mask': ['int64', 1n, [1, 128]],
+      'encoder_hidden_states': ['float32', 'random', [1, 128, 512]]
+    },
+    {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}
+  ],
   // webnn
   'emotion-ferplus-8': {Input3: ['float32', 'random', [1, 1, 64, 64]]},
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
@@ -51,6 +81,28 @@ const models = {
 
   // https://github.com/onnx/models/tree/main/Computer_Vision/mobilenetv3_small_100_Opset17_timm
   'mobilenetv3-small-100': 'img224',
+
+  // https://huggingface.co/Xenova/mobilevit-small/blob/main/onnx/model.onnx
+  'mobilevit-small': [
+    {'pixel_values': ['float32', 'random', [1, 3, 256, 256]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 256, 'width': 256}
+  ],
+
+  // https://huggingface.co/Xenova/msmarco-distilbert-base-v4/blob/main/onnx/model.onnx
+  'msmarco-distilbert-base-v4': [
+    {'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]]},
+    {'batch_size': 1, 'sequence_length': 50}
+  ],
+
+  // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model_merged.onnx
+  'mt5-small-decoder-merged':
+      ['mt5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
+
+  // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/encoder_model.onnx
+  'mt5-small-encoder': [
+    {'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]]},
+    {'batch_size': 1, 'encoder_sequence_length': 128}
+  ],
 
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
@@ -95,6 +147,16 @@ const models = {
     {vaeenc_sample_batch: 1, vaeenc_sample_channels: 3, vaeenc_sample_height: 512, vaeenc_sample_width: 512}
   ],
 
+  // https://huggingface.co/Xenova/squeezebert-uncased/blob/main/onnx/model.onnx
+  'squeezebert-uncased': [
+    {
+      'input_ids': ['int64', 99n, [1, 50]],
+      'attention_mask': ['int64', 1n, [1, 50]],
+      'token_type_ids': ['int64', 99n, [1, 50]],
+    },
+    {'batch_size': 1, 'sequence_length': 50}
+  ],
+
   // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model.onnx
   't5-small-decoder': ['t5-decoder', {batch_size: 1, decoder_sequence_length: 128, encoder_sequence_length: 128}],
   // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
@@ -110,6 +172,24 @@ const models = {
 
   // webnn
   'tinyyolov2-8': [{image: ['float32', 'random', [1, 3, 416, 416]]}, {None: 1}],
+
+  // https://huggingface.co/Xenova/vit-base-patch16-224/blob/main/onnx/model.onnx
+  'vit-base-patch16-224': [
+    {'pixel_values': ['float32', 1, [1, 3, 224, 224]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224}
+  ],
+
+  // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model_merged.onnx
+  'vit-gpt2-image-captioning-decoder-merged': [
+    {'input_ids': ['int64', 1n, [1, 168]], 'encoder_hidden_states': ['float32', 'random', [1, 168, 768]]},
+    {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
+  ],
+  // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/encoder_model.onnx
+  'vit-gpt2-image-captioning-encoder': [
+    {'pixel_values': ['float32', 1, [1, 3, 224, 224]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224}
+  ],
+
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model.onnx
   'whisper-tiny-decoder': ['whisper-decoder', 'whisper-decoder'],
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model_merged.onnx
@@ -118,6 +198,12 @@ const models = {
   'whisper-tiny-encoder': [
     {input_features: ['float32', 'random', [1, 80, 3000]]},
     {batch_size: 1, feature_size: 80, encoder_sequence_length: 3000}
+  ],
+
+  // https://huggingface.co/Xenova/xlm-roberta-base/blob/main/onnx/model.onnx
+  'xlm-roberta-base': [
+    {'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]]},
+    {'batch_size': 1, 'sequence_length': 50}
   ],
 
   // TODO
@@ -338,8 +424,7 @@ function getFeeds(session, modelName) {
     feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
   }
 
-  if (inputs === 't5-decoder') {
-    decSeqLen = 128;
+  if (inputs === 't5-decoder' || inputs === 'mt5-decoder') {
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 512]);
     const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
