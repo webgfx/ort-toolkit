@@ -194,7 +194,14 @@
         results = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/.exec(content);
         let kernelName = "";
         const kernelInfo = results[1].split("|");
-        kernelName = kernelInfo[1];
+        const opType = kernelInfo[1];
+        const programName = kernelInfo[3];
+        if (opType == programName) {
+          kernelName = opType;
+        } else {
+          kernelName = `${opType}|${programName}`;
+        }
+
         if (results) {
           webgpuProfilingData.push([
             webgpuProfilingIndex++,
@@ -428,7 +435,7 @@
         ort.env.logLevel = logLevel;
       }
       if (enableTrace) {
-        ort.env.trace = true;
+        ort.env.wasm.trace = true;
       }
       if (ep === "webnn") {
         ort.env.wasm.proxy = true;
