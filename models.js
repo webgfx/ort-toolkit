@@ -23,6 +23,15 @@ const models = {
   'detr-resnet-50-2': 'detr-resnet-50-2',
   // tjs/facebook/dino-vitb16/onnx/model.onnx
   'dino-vitb16': ['img224', {batch_size: 1, num_channels: 3, height: 224, width: 224}],
+  // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model.onnx
+  'distilbart-cnn-6-6-decoder': [
+    {
+      'input_ids': ['int64', 99n, [1, 168]],
+      'encoder_attention_mask': ['int64', 1n, [1, 168]],
+      'encoder_hidden_states': ['float32', 1, [1, 168, 1024]]
+    },
+    {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
+  ],
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model_merged.onnx
   'distilbart-cnn-6-6-decoder-merged': [
     {
@@ -52,6 +61,15 @@ const models = {
   'flan-t5-small-encoder': [
     {'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]]},
     {'batch_size': 1, 'encoder_sequence_length': 128}
+  ],
+  // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model.onnx
+  'flan-t5-small-decoder': [
+    {
+      'input_ids': ['int64', 99n, [1, 128]],
+      'encoder_attention_mask': ['int64', 1n, [1, 128]],
+      'encoder_hidden_states': ['float32', 'random', [1, 128, 512]]
+    },
+    {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}
   ],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model_merged.onnx
   'flan-t5-small-decoder-merged': [
@@ -94,6 +112,9 @@ const models = {
     {'batch_size': 1, 'sequence_length': 50}
   ],
 
+  // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model.onnx
+  'mt5-small-decoder':
+      ['mt5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model_merged.onnx
   'mt5-small-decoder-merged':
       ['mt5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
@@ -179,6 +200,11 @@ const models = {
     {'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224}
   ],
 
+  // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model.onnx
+  'vit-gpt2-image-captioning-decoder': [
+    {'input_ids': ['int64', 1n, [1, 168]], 'encoder_hidden_states': ['float32', 'random', [1, 168, 768]]},
+    {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
+  ],
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model_merged.onnx
   'vit-gpt2-image-captioning-decoder-merged': [
     {'input_ids': ['int64', 1n, [1, 168]], 'encoder_hidden_states': ['float32', 'random', [1, 168, 768]]},
@@ -255,10 +281,8 @@ function getFeeds(session, modelName) {
       if (v.startsWith('past_key_values')) {
         feeds[v] = getTensor('float32', 1, [1, kvdim, decSeqLen, 64]);
       }
-      if (v.startsWith('encoder_attention_mask')) {
-        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
-      }
     }
+    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
     feeds['use_cache_branch'] = getTensor('bool', true);
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, hiddendim]);
@@ -425,8 +449,9 @@ function getFeeds(session, modelName) {
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder') {
+    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, encSeqLen, 512]);
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 512]);
     const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
     const decoder_shape = inputs === 't5-decoder' ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
     for (var k in inputNames) {
@@ -437,9 +462,6 @@ function getFeeds(session, modelName) {
         } else if (v.includes('encoder')) {
           feeds[v] = getTensor('float32', 1, encoder_shape);
         }
-      }
-      if (v == 'encoder_attention_mask') {
-        feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
       }
     }
     if (modelName.endsWith('merged')) {
