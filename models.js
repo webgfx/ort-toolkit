@@ -63,23 +63,11 @@ const models = {
     {'batch_size': 1, 'encoder_sequence_length': 128}
   ],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model.onnx
-  'flan-t5-small-decoder': [
-    {
-      'input_ids': ['int64', 99n, [1, 128]],
-      'encoder_attention_mask': ['int64', 1n, [1, 128]],
-      'encoder_hidden_states': ['float32', 'random', [1, 128, 512]]
-    },
-    {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}
-  ],
+  'flan-t5-small-decoder':
+      ['flan-t5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model_merged.onnx
-  'flan-t5-small-decoder-merged': [
-    {
-      'input_ids': ['int64', 99n, [1, 128]],
-      'encoder_attention_mask': ['int64', 1n, [1, 128]],
-      'encoder_hidden_states': ['float32', 'random', [1, 128, 512]]
-    },
-    {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}
-  ],
+  'flan-t5-small-decoder-merged':
+      ['flan-t5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
   // webnn
   'emotion-ferplus-8': {Input3: ['float32', 'random', [1, 1, 64, 64]]},
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
@@ -202,12 +190,12 @@ const models = {
 
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model.onnx
   'vit-gpt2-image-captioning-decoder': [
-    {'input_ids': ['int64', 1n, [1, 168]], 'encoder_hidden_states': ['float32', 'random', [1, 168, 768]]},
+    'vit-gpt2-image-captioning-decoder',
     {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
   ],
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model_merged.onnx
   'vit-gpt2-image-captioning-decoder-merged': [
-    {'input_ids': ['int64', 1n, [1, 168]], 'encoder_hidden_states': ['float32', 'random', [1, 168, 768]]},
+    'vit-gpt2-image-captioning-decoder',
     {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
   ],
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/encoder_model.onnx
@@ -448,7 +436,7 @@ function getFeeds(session, modelName) {
     feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
   }
 
-  if (inputs === 't5-decoder' || inputs === 'mt5-decoder') {
+  if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
     feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
     feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, encSeqLen, 512]);
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
@@ -471,6 +459,20 @@ function getFeeds(session, modelName) {
 
   if (inputs === 't5-encoder') {
     feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+  }
+
+  if (inputs === 'vit-gpt2-image-captioning-decoder') {
+    feeds['input_ids'] = getTensor('int64', 99n, [1, 168]);
+    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, 168, 768]);
+
+    for (var v of inputNames) {
+      if (v.startsWith('past_key_values')) {
+        feeds[v] = getTensor('float32', 1, [1, 12, decSeqLen, 64]);
+      }
+    }
+    if (modelName.endsWith('merged')) {
+      feeds['use_cache_branch'] = getTensor('bool', true);
+    }
   }
 
   if (inputs === 'whisper-decoder') {
