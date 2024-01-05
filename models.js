@@ -525,7 +525,7 @@ function getFreeDimensionOverrides(modelName) {
       decoder_sequence_length: 1,
       past_decoder_sequence_length: 128,
       encoder_sequence_length_out: 1500,
-      encoder_sequence_length: 3000,
+      'encoder_sequence_length / 2': 1500,
     };
   }
 
