@@ -55,10 +55,12 @@
 
     // for developers
     const disableBuffer = getParam("disableBuffer") === "true" || false;
+    // Don't set this if task is conformance
     const disableReadback = getParam("disableReadback") === "true" || false;
 
     const enableDebug = getParam("enableDebug") === "true" || false;
     const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
+    const enableIoBinding = getParam("enableIoBinding") === "true" || false;
     const enableTrace = getParam("enableTrace") === "true" || false;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
 
@@ -78,17 +80,19 @@
     let artifactIndex = 0;
     const displayPrecision = 2;
     let feeds;
+    let originConsoleLog;
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
     const unitConversionFactor = 1000000;
     let warmupTimesLeft = warmupTimes;
+    let webgpuDevice;
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
-    let originConsoleLog;
 
     async function createSession(sessionOptions) {
+      let session;
       if (disableBuffer) {
-        return await ort.InferenceSession.create(modelUrl, sessionOptions);
+        session = await ort.InferenceSession.create(modelUrl, sessionOptions);
       } else {
         // For WebNN, we need a new model buffer everytime as it's in worker thread
         let modelBuffer;
@@ -100,8 +104,20 @@
             modelBuffer = await getModelOPFS(modelName, modelUrl, true);
           }
         }
-        return await ort.InferenceSession.create(modelBuffer, sessionOptions);
+        session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
       }
+      if (ep === "webgpu") {
+        webgpuDevice = ort.env.webgpu.device;
+      }
+      if (feeds === undefined) {
+        feeds = {};
+        feeds['cpu'] = {};
+        if (ep === 'webgpu' && enableIoBinding) {
+          feeds['gpu'] = {};
+        }
+        setFeeds(session, modelName);
+      }
+      return session;
     }
 
     function getParam(name) {
@@ -160,6 +176,7 @@
       // run tasks
       for (let task of tasks.split(",")) {
         if (task === "conformance") {
+          // ep has to run before wasm so that webgpuDevice can be correctly initialized
           let epOutput = await runTask("conformance", ep);
           let cpuOutput = await runTask("conformance", "wasm");
           renderTask(task, [epOutput, cpuOutput]);
@@ -375,11 +392,15 @@
 
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
-    async function runTask(task, ep) {
+    async function runTask(task, taskEp) {
       let session;
       let sessionStartTime = performance.now();
       let times = [];
       let totalTime = 0;
+
+      if (task === "conformance" && disableReadback) {
+        throw Error("Can not set disableReadback for conformance");
+      }
 
       // override console.log
       if (task.includes("Profiling") || task === "artifact") {
@@ -399,7 +420,7 @@
       const sessionOptions = {
         executionProviders: [
           {
-            name: ep,
+            name: taskEp,
             deviceType: deviceType,
           },
         ],
@@ -408,19 +429,19 @@
         logVerbosityLevel: logVerbosityLevel,
       };
 
-      if (ep === "webgpu" && disableReadback && task !== "conformance") {
+      if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
         sessionOptions.preferredOutputLocation = "gpu-buffer";
       }
 
-      if (ep === "webgpu") {
+      if (taskEp === "webgpu") {
         sessionOptions.preferredLayout = layout;
       }
 
-      if (ep === "webnn" && deviceType === "cpu") {
+      if (taskEp === "webnn" && deviceType === "cpu") {
         sessionOptions.executionProviders[0].numThreads = webnnNumThreads;
       }
 
-      if (ep === "webnn" || enableFreeDimensionOverrides) {
+      if (taskEp === "webnn" || enableFreeDimensionOverrides) {
         sessionOptions.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
       }
 
@@ -437,7 +458,7 @@
       if (enableTrace) {
         ort.env.wasm.trace = true;
       }
-      if (ep === "webnn") {
+      if (taskEp === "webnn") {
         ort.env.wasm.proxy = true;
       }
       if (task === "artifact") {
@@ -451,9 +472,6 @@
       if (task != "ortProfiling") {
         const sessionCreateStartTime = performance.now();
         session = await createSession(sessionOptions);
-        if (feeds === undefined) {
-          feeds = getFeeds(session, modelName);
-        }
         const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
         console.info(`${elapsedTime}ms was used to create session`);
       }
@@ -475,7 +493,6 @@
         if (task === "ortProfiling") {
           const sessionCreateStartTime = performance.now();
           session = await createSession(sessionOptions);
-          feeds = getFeeds(session, modelName);
           const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
           console.info(`${elapsedTime}ms was used to create session`);
         }
@@ -485,17 +502,30 @@
           logSeverityLevel: logSeverityLevel,
           logVerbosityLevel: logVerbosityLevel,
         };
-        if (ep === "webnn") {
-          // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          results = await session.run(clone(feeds), runOptions);
+
+        let locationFeeds;
+        if (taskEp === 'webgpu' && enableIoBinding) {
+          locationFeeds = feeds['gpu'];
         } else {
-          results = await session.run(feeds, runOptions);
-          if (ep === "webgpu" && disableReadback && task !== "conformance") {
-            await ort.env.webgpu.device.queue.onSubmittedWorkDone();
+          locationFeeds = feeds['cpu'];
+        }
+        if (taskEp === "webnn") {
+          // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
+          results = await session.run(clone(locationFeeds), runOptions);
+        } else {
+          results = await session.run(locationFeeds, runOptions);
+          if (taskEp === "webgpu" && disableReadback) {
+            await webgpuDevice.queue.onSubmittedWorkDone();
           }
         }
+
         if (task === "conformance") {
-          let result = results[session.outputNames[0]]["data"];
+          let result;
+          if (taskEp === "webgpu" && enableIoBinding) {
+            result = results[session.outputNames[0]].getData(true);
+          } else {
+            result = results[session.outputNames[0]]["data"];
+          }
           session.release();
           return result;
         }

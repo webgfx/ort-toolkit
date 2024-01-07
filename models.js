@@ -251,8 +251,7 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
 
-function getFeeds(session, modelName) {
-  let feeds = {};
+function setFeeds(session, modelName) {
   let inputs = models[modelName];
   if (inputs instanceof Array) {
     inputs = inputs[0];
@@ -267,13 +266,13 @@ function getFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        feeds[v] = getTensor('float32', 1, [1, kvdim, decSeqLen, 64]);
+        feeds[v] = setFeed('float32', 1, [1, kvdim, decSeqLen, 64]);
       }
     }
-    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
-    feeds['use_cache_branch'] = getTensor('bool', true);
-    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, hiddendim]);
+    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    setFeed('use_cache_branch', 'bool', true);
+    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
+    setFeed('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddendim]);
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
@@ -289,38 +288,38 @@ function getFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v === 'input_ids') {
-        feeds[v] = getTensor(dtype, value, [1, decSeqLen]);
+        setFeed(v, dtype, value, [1, decSeqLen]);
       }
       if (v === 'input_mask' || v === 'attention_mask') {
-        feeds[v] = getTensor(dtype, one, [1, decSeqLen]);
+        setFeed(v, dtype, one, [1, decSeqLen]);
       }
       if (v === 'token_type_ids' || v == 'segment_ids') {
-        feeds[v] = getTensor(dtype, one, [1, decSeqLen]);
+        setFeed(v, dtype, one, [1, decSeqLen]);
       }
     }
   }
 
   if (inputs === 'clip') {
-    feeds['input_ids'] = getTensor('int64', 49407n, [1, 77]);
-    feeds['pixel_values'] = getTensor('float32', 99, [1, 3, 224, 224]);
-    feeds['attention_mask'] = getTensor('int64', 1n, [1, 77]);
+    setFeed('input_ids', 'int64', 49407n, [1, 77]);
+    setFeed('pixel_values', 'float32', 99, [1, 3, 224, 224]);
+    setFeed('attention_mask', 'int64', 1n, [1, 77]);
   }
 
   if (inputs === 'detr-resnet-50-2') {
-    feeds['pixel_values'] = getTensor('float32', 'random', [1, 3, 800, 800]);
-    feeds['pixel_mask'] = getTensor('int64', 1n, [1, 64, 64]);
+    setFeed('pixel_values', 'float32', 'random', [1, 3, 800, 800]);
+    setFeed('pixel_mask', 'int64', 1n, [1, 64, 64]);
   }
 
   if (inputs === 'img224') {
-    feeds[inputNames[0]] = getTensor('float32', 'random', [1, 3, 224, 224]);
+    setFeed(inputNames[0], 'float32', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'img224-f16') {
-    feeds[inputNames[0]] = getTensor('float16', 'random', [1, 3, 224, 224]);
+    setFeed(inputNames[0], 'float16', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'img224-i8') {
-    feeds[inputNames[0]] = getTensor('int8', 'random', [1, 3, 224, 224]);
+    setFeed(inputNames[0], 'int8', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'llm-decoder') {
@@ -332,175 +331,173 @@ function getFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        feeds[v] = getTensor('float32', 1, [1, 12, decSeqLen, 64]);
+        setFeed(v, 'float32', 1, [1, 12, decSeqLen, 64]);
       }
     }
-    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
-    feeds['attention_mask'] = getTensor('int64', 1n, [1, decSeqLen]);
+    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
+    setFeed('attention_mask', 'int64', 1n, [1, decSeqLen]);
 
     if (modelName.endsWith('merged')) {
-      feeds['use_cache_branch'] = getTensor('bool', true);
+      setFeed('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 'm2m100-decoder') {
-    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
-    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, encSeqLen, 1024]);
+    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
+    setFeed('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
     const encoder_shape = [1, 16, encSeqLen, 64];
     const decoder_shape = [1, 16, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          feeds[v] = getTensor('float32', 1, decoder_shape);
+          setFeed(v, 'float32', 1, decoder_shape);
         } else if (v.includes('encoder')) {
-          feeds[v] = getTensor('float32', 1, encoder_shape);
+          setFeed(v, 'float32', 1, encoder_shape);
         }
       }
     }
-    feeds['use_cache_branch'] = getTensor('bool', true);
+    setFeed('use_cache_branch', 'bool', true);
   }
 
   if (inputs === 'm2m100-encoder') {
-    feeds['input_ids'] = getTensor('int64', 99n, [1, encSeqLen]);
-    feeds['attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
+    setFeed('input_ids', 'int64', 99n, [1, encSeqLen]);
+    setFeed('attention_mask', 'int64', 1n, [1, encSeqLen]);
   }
 
   if (inputs === 'mobilenetv3') {
-    feeds[inputNames[0]] = getTensor('float32', 'random', [1, 224, 224, 3]);
+    setFeed(inputNames[0], 'float32', 'random', [1, 224, 224, 3]);
   }
 
   if (inputs === 'realesrgan') {
     const modelInfo = modelName.split('-');
     const tileSize = parseInt(modelInfo[1].replace('t', ''));
     const dataType = modelName.endsWith('f16') ? '16' : '32';
-    feeds[`in_image_float${dataType}_rgb01`] = getTensor(`float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
+    setFeed(`in_image_float${dataType}_rgb01`, `float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
   }
 
   if (inputs === 'sam-b-vision-encoder') {
-    feeds['pixel_values'] = getTensor('float32', 'random', [1, 3, 1024, 1024]);
+    setFeed('pixel_values', 'float32', 'random', [1, 3, 1024, 1024]);
   }
 
   if (inputs === 'sam-decoder') {
-    feeds['image_embeddings'] = getTensor('float32', 'random', [1, 256, 64, 64]);
-    feeds['point_coords'] = getTensor('float32', 'random', [1, 2, 2]);
-    feeds['point_labels'] = getTensor('float32', 'random', [1, 2]);
-    feeds['mask_input'] = getTensor('float32', 'random', [1, 1, 256, 256]);
-    feeds['has_mask_input'] = getTensor('float32', 'random', [1]);
+    setFeed('image_embeddings', 'float32', 'random', [1, 256, 64, 64]);
+    setFeed('point_coords', 'float32', 'random', [1, 2, 2]);
+    setFeed('point_labels', 'float32', 'random', [1, 2]);
+    setFeed('mask_input', 'float32', 'random', [1, 1, 256, 256]);
+    setFeed('has_mask_input', 'float32', 'random', [1]);
     if (inputNames.includes('orig_im_size')) {
-      feeds['orig_im_size'] = new ort.Tensor(new Float32Array([512, 512]), [2]);
+      setFeed('orig_im_size', 'float32', [512, 512], [2]);
     }
   }
 
   if (inputs === 'sam-decoder-f16') {
-    feeds['image_embeddings'] = getTensor('float16', 'random', [1, 256, 64, 64]);
-    feeds['point_coords'] = getTensor('float16', 'random', [1, 2, 2]);
-    feeds['point_labels'] = getTensor('float16', 'random', [1, 2]);
-    feeds['mask_input'] = getTensor('float16', 'random', [1, 1, 256, 256]);
-    feeds['has_mask_input'] = getTensor('float16', 'random', [1]);
+    setFeed('image_embeddings', 'float16', 'random', [1, 256, 64, 64]);
+    setFeed('point_coords', 'float16', 'random', [1, 2, 2]);
+    setFeed('point_labels', 'float16', 'random', [1, 2]);
+    setFeed('mask_input', 'float16', 'random', [1, 1, 256, 256]);
+    setFeed('has_mask_input', 'float16', 'random', [1]);
     if (inputNames.includes('orig_im_size')) {
-      feeds['orig_im_size'] = new ort.Tensor(new Float32Array([512, 512]), [2]);
+      setFeed('orig_im_size', 'float32', [512, 512], [2]);
     }
   }
 
   if (inputs === 'sam-encoder') {
-    feeds['input_image'] = getTensor('float32', 1, [224, 224, 3]);
+    setFeed('input_image', 'float32', 1, [224, 224, 3]);
   }
 
   if (inputs === 'sd-text-encoder') {
-    feeds['input_ids'] = getTensor('int32', 99, [1, encSeqLen]);
+    setFeed('input_ids', 'int32', 99, [1, encSeqLen]);
   }
 
   if (inputs === 'sd-unet') {
-    feeds['sample'] = getTensor('float32', 1, [1, 4, 64, 64]);
-    feeds['timestep'] = getTensor('int64', 1n, [1]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 1, [1, 77, 768]);
+    setFeed('sample', 'float32', 1, [1, 4, 64, 64]);
+    setFeed('timestep', 'int64', 1n, [1]);
+    setFeed('encoder_hidden_states', 'float32', 1, [1, 77, 768]);
   }
 
   if (inputs === 'sd-unet-f16') {
-    feeds['sample'] = getTensor('float16', 1, [1, 4, 64, 64]);
-    feeds['timestep'] = getTensor('int64', 1n, [1]);
-    feeds['encoder_hidden_states'] = getTensor('float16', 1, [1, 77, 768]);
+    setFeed('sample', 'float16', 1, [1, 4, 64, 64]);
+    setFeed('timestep', 'int64', 1n, [1]);
+    setFeed('encoder_hidden_states', 'float16', 1, [1, 77, 768]);
   }
 
   if (inputs === 'sd-vae-decoder-f16') {
-    feeds['latent_sample'] = getTensor('float16', 'random', [1, 4, 64, 64]);
+    setFeed('latent_sample', 'float16', 'random', [1, 4, 64, 64]);
   }
 
   if (inputs === 'sd-vae-decoder') {
-    feeds['latent_sample'] = getTensor('float32', 'random', [1, 4, 64, 64]);
+    setFeed('latent_sample', 'float32', 'random', [1, 4, 64, 64]);
   }
 
   if (inputs === 'sd-vae-encoder') {
-    feeds['sample'] = getTensor('float32', 'random', [1, 3, 512, 512]);
+    setFeed('sample', 'float32', 'random', [1, 3, 512, 512]);
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    feeds['encoder_attention_mask'] = getTensor('int64', 1n, [1, encSeqLen]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, encSeqLen, 512]);
-    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    setFeed('encoder_hidden_states', 'float32', 'random', [1, encSeqLen, 512]);
+    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
     const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
     const decoder_shape = inputs === 't5-decoder' ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          feeds[v] = getTensor('float32', 1, decoder_shape);
+          setFeed(v, 'float32', 1, decoder_shape);
         } else if (v.includes('encoder')) {
-          feeds[v] = getTensor('float32', 1, encoder_shape);
+          setFeed(v, 'float32', 1, encoder_shape);
         }
       }
     }
     if (modelName.endsWith('merged')) {
-      feeds['use_cache_branch'] = getTensor('bool', true);
+      setFeed('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 't5-encoder') {
-    feeds['input_ids'] = getTensor('int64', 99n, [1, decSeqLen]);
+    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
   }
 
   if (inputs === 'vit-gpt2-image-captioning-decoder') {
-    feeds['input_ids'] = getTensor('int64', 99n, [1, 168]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, 168, 768]);
+    setFeed('input_ids', 'int64', 99n, [1, 168]);
+    setFeed('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
 
     for (var v of inputNames) {
       if (v.startsWith('past_key_values')) {
-        feeds[v] = getTensor('float32', 1, [1, 12, decSeqLen, 64]);
+        setFeed(v, 'float32', 1, [1, 12, decSeqLen, 64]);
       }
     }
     if (modelName.endsWith('merged')) {
-      feeds['use_cache_branch'] = getTensor('bool', true);
+      setFeed('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 'whisper-decoder') {
-    feeds['input_ids'] = getTensor('int64', 1n, [1, 1]);
-    feeds['encoder_hidden_states'] = getTensor('float32', 'random', [1, 1500, 384]);
+    setFeed('input_ids', 'int64', 1n, [1, 1]);
+    setFeed('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          feeds[v] = getTensor('float32', 1, [1, 6, decSeqLen, 64]);
+          setFeed(v, 'float32', 1, [1, 6, decSeqLen, 64]);
         } else if (v.includes('encoder')) {
-          feeds[v] = getTensor('float32', 1, [1, 6, 1500, 64]);
+          setFeed(v, 'float32', 1, [1, 6, 1500, 64]);
         }
       }
     }
     if (modelName.endsWith('merged')) {
-      feeds['use_cache_branch'] = getTensor('bool', true);
+      setFeed('use_cache_branch', 'bool', true);
     }
   }
 
   if (isDict(inputs)) {
     for (let key in inputs) {
       let value = inputs[key];
-      feeds[key] = getTensor(value[0], value[1], value[2]);
+      setFeed(key, value[0], value[1], value[2]);
     }
   }
-
-  return feeds;
 }
 
 function getFreeDimensionOverrides(modelName) {
@@ -532,7 +529,8 @@ function getFreeDimensionOverrides(modelName) {
   return freeDimensionOverrides;
 }
 
-function getTensor(type, data, dims) {
+// depend on global variables feeds and webgpuDevice
+function setFeed(feed, type, data, dims) {
   let typedArray;
   if (type === 'bool') {
     return new ort.Tensor(type, [data], [1]);
@@ -550,14 +548,12 @@ function getTensor(type, data, dims) {
     typedArray = BigInt64Array;
   }
 
-  let _data;
+  let size, _data;
   if (Array.isArray(data) || ArrayBuffer.isView(data)) {
+    size = data.length;
     _data = data;
   } else {
-    let size = 1;
-    dims.forEach((dim) => {
-      size *= dim;
-    });
+    size = dims.reduce((a, b) => a * b);
     if (data === 'random') {
       _data = typedArray.from({length: size}, () => Math.random());
     } else if (data === 'ramp') {
@@ -566,7 +562,16 @@ function getTensor(type, data, dims) {
       _data = typedArray.from({length: size}, () => data);
     }
   }
-  return new ort.Tensor(type, _data, dims);
+
+  feeds['cpu'][feed] = new ort.Tensor(type, _data, dims);
+  if ('gpu' in feeds) {
+    const buffer = webgpuDevice.createBuffer({
+      size: 4 * size,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+    });
+    webgpuDevice.queue.writeBuffer(buffer, 0, _data);
+    feeds['gpu'][feed] = ort.Tensor.fromGpuBuffer(buffer, {dataType: type, dims});
+  }
 }
 
 function isDict(v) {
