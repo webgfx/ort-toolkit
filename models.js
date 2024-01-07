@@ -532,8 +532,11 @@ function getFreeDimensionOverrides(modelName) {
 // depend on global variables feeds and webgpuDevice
 function setFeed(feed, type, data, dims) {
   let typedArray;
+  let typeBytes;
   if (type === 'bool') {
-    return new ort.Tensor(type, [data], [1]);
+    data = [data];
+    dims = [1];
+    typeBytes = 1;
   } else if (type === 'int8') {
     typedArray = Int8Array;
   } else if (type === 'uint16') {
@@ -546,6 +549,9 @@ function setFeed(feed, type, data, dims) {
     typedArray = Int32Array;
   } else if (type === 'int64') {
     typedArray = BigInt64Array;
+  }
+  if (typeBytes === undefined) {
+    typeBytes = typedArray.BYTES_PER_ELEMENT;
   }
 
   let size, _data;
@@ -566,8 +572,8 @@ function setFeed(feed, type, data, dims) {
   feeds['cpu'][feed] = new ort.Tensor(type, _data, dims);
   if ('gpu' in feeds) {
     const buffer = webgpuDevice.createBuffer({
-      size: 4 * size,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+      size: size * typeBytes,
+      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
     webgpuDevice.queue.writeBuffer(buffer, 0, _data);
     feeds['gpu'][feed] = ort.Tensor.fromGpuBuffer(buffer, {dataType: type, dims});
