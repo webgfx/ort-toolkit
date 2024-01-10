@@ -40,14 +40,10 @@ Some parameters are supported in url, and you may use them as 'index.html?key0=v
 - ep: execution provider. E.g., webgpu, wasm
 - layout=[NCHW|NHWC]. NHWC is the default.
 - modelName: name of modelName. E.g., mobilenetv2-12
-- modelUrl=[hf|server|wp-27|[url]]. Note that if you provide the url, you may fail to execute the modelName as the
-  inputs are not defined well.
-
+- modelUrl=[hf|server|wp-27|[url]]. Note that if you provide the url, you may fail to execute the modelName as the inputs are not defined well.
 - ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime or ortUrl=gh/20231129
 - runTimes: Run times
-- tasks=[task0,task1,task2]: tasks to run, split by ','. Candidates are 'conformance', 'performance',
-  'ortProfiling', 'webgpuProfiling'.
-
+- task: task to run, while the candidates are 'conformance', 'performance', 'ortProfiling', 'webgpuProfiling'.
 - updateModel=[true|false]. False (default) means no update.
 - warmupTimes: Warmup times
 - wasmThreads: wasm threads number

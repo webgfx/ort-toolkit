@@ -44,11 +44,11 @@
     }
 
     const ortUrl = getParam("ortUrl");
-    let runTimes = getParam("runTimes") || 3;
+    let runTimes = getParam("runTimes") || 0;
     runTimes = parseInt(runTimes);
-    const tasks = getParam("tasks") || "performance";
+    const task = getParam("task") || "performance";
     const updateModel = getParam("updateModel") === "true" || false;
-    let warmupTimes = getParam("warmupTimes") || 10;
+    let warmupTimes = getParam("warmupTimes") || 0;
     warmupTimes = parseInt(warmupTimes);
     const wasmThreads = parseInt(getParam("wasmThreads")) || 4;
     const webnnNumThreads = parseInt(getParam("webnnNumThreads")) || 4;
@@ -85,7 +85,6 @@
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
     const unitConversionFactor = 1000000;
-    let warmupTimesLeft = warmupTimes;
     let webgpuDevice;
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
@@ -110,14 +109,17 @@
       if (ep === "webgpu") {
         webgpuDevice = ort.env.webgpu.device;
       }
+
+      // init feeds
       if (feeds === undefined) {
         feeds = {};
-        feeds['cpu'] = {};
-        if (ep === 'webgpu' && enableIoBinding) {
-          feeds['gpu'] = {};
+        feeds["cpu"] = [];
+        if (ep === "webgpu" && enableIoBinding) {
+          feeds["gpu"] = [];
         }
         setFeeds(session, modelName);
       }
+
       return session;
     }
 
@@ -174,22 +176,48 @@
         await loadScript(url);
       }
 
-      // run tasks
-      for (let task of tasks.split(",")) {
-        if (task === "conformance") {
-          // ep has to run before wasm so that webgpuDevice can be correctly initialized
-          let epOutput = await runTask("conformance", ep);
-          let cpuOutput = await runTask("conformance", "wasm");
-          renderTask(task, [epOutput, cpuOutput]);
-        } else if (task === "artifact") {
-          await runTask(task, ep);
-          renderTask(task);
-        } else {
-          let times = await runTask(task, ep);
-          renderTask(task, times);
-        }
-        reportStatus(`Finished task ${task}`);
+      // Set env
+      ort.env.wasm.numThreads = wasmThreads;
+      ort.env.wasm.simd = true;
+
+      if (enableDebug) {
+        ort.env.debug = true;
       }
+      if (logLevel) {
+        ort.env.logLevel = logLevel;
+      }
+      if (enableTrace) {
+        ort.env.wasm.trace = true;
+      }
+      if (ep === "webnn") {
+        ort.env.wasm.proxy = true;
+      }
+      if (task === "artifact") {
+        ort.env.debug = true;
+        ort.env.logLevel = "info";
+        warmupTimes = 0;
+        runTimes = 1;
+      }
+      if (task === "conformance" && ep === "webgpu" && enableIoBinding && runTimes === 0) {
+        runTimes = 2;
+      } else if (runTimes === 0) {
+        runTimes = 1;
+      }
+
+      // run task
+      if (task === "conformance") {
+        // ep has to run before wasm so that webgpuDevice can be correctly initialized
+        let epResults = await runTask(ep);
+        let cpuResults = await runTask("wasm");
+        renderTask([epResults, cpuResults]);
+      } else if (task === "artifact") {
+        await runTask(ep);
+        renderTask(task);
+      } else {
+        let results = await runTask(ep);
+        renderTask(results);
+      }
+      reportStatus(`Finished task ${task}`);
     }
 
     function processConsoleLog(args) {
@@ -337,7 +365,7 @@
       document.body.appendChild(document.createElement("p"));
     }
 
-    function renderTask(task, data) {
+    function renderTask(data) {
       let taskElement = document.createElement("p");
       taskElement.align = "center";
       document.body.appendChild(taskElement);
@@ -350,7 +378,11 @@
       let result = {};
 
       if (task === "conformance") {
-        result["result"] = compare(data[0], data[1]);
+        let _results = [];
+        for (i = 0; i < data[0].length; i++) {
+          _results.push(compare(data[0][i], data[1][i]));
+        }
+        result["result"] = _results.join(", ");
 
         for (let i = 0; i < data.length; i++) {
           console.info(data[i]);
@@ -393,10 +425,10 @@
 
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
-    async function runTask(task, taskEp) {
+    async function runTask(taskEp) {
       let session;
       let sessionStartTime = performance.now();
-      let times = [];
+      let results = [];
       let totalTime = 0;
 
       if (task === "conformance" && disableReadback) {
@@ -450,29 +482,6 @@
         sessionOptions.executionProviders[0].graphCaptureEnabled = true;
       }
 
-      // Set env
-      ort.env.wasm.numThreads = wasmThreads;
-      ort.env.wasm.simd = true;
-
-      if (enableDebug) {
-        ort.env.debug = true;
-      }
-      if (logLevel) {
-        ort.env.logLevel = logLevel;
-      }
-      if (enableTrace) {
-        ort.env.wasm.trace = true;
-      }
-      if (taskEp === "webnn") {
-        ort.env.wasm.proxy = true;
-      }
-      if (task === "artifact") {
-        ort.env.debug = true;
-        ort.env.logLevel = "info";
-        warmupTimes = 0;
-        runTimes = 1;
-      }
-
       // create session
       if (task != "ortProfiling") {
         const sessionCreateStartTime = performance.now();
@@ -483,6 +492,9 @@
 
       // run a task
       for (let i = 0; i < warmupTimes + runTimes; i++) {
+        let result;
+        let locationFeeds;
+
         if (!sessionStartTime) {
           sessionStartTime = performance.now();
         }
@@ -502,41 +514,35 @@
           console.info(`${elapsedTime}ms was used to create session`);
         }
 
-        let results;
         const runOptions = {
           logSeverityLevel: logSeverityLevel,
           logVerbosityLevel: logVerbosityLevel,
         };
 
-        let locationFeeds;
-        if (taskEp === 'webgpu' && enableIoBinding) {
-          locationFeeds = feeds['gpu'];
+        if (taskEp === "webgpu" && enableIoBinding) {
+          locationFeeds = feeds["gpu"][i];
         } else {
-          locationFeeds = feeds['cpu'];
+          locationFeeds = feeds["cpu"][i];
         }
         if (taskEp === "webnn") {
           // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          results = await session.run(clone(locationFeeds), runOptions);
+          result = await session.run(clone(locationFeeds), runOptions);
         } else {
-          results = await session.run(locationFeeds, runOptions);
+          result = await session.run(locationFeeds, runOptions);
           if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
             await webgpuDevice.queue.onSubmittedWorkDone();
           }
         }
 
         if (task === "conformance") {
-          let result;
           if (taskEp === "webgpu" && enableIoBinding) {
-            result = results[session.outputNames[0]].getData(true);
+            results.push(await result[session.outputNames[0]].getData(true));
           } else {
-            result = results[session.outputNames[0]]["data"];
+            results.push(result[session.outputNames[0]]["data"]);
           }
-          session.release();
-          return result;
-        }
-        if (i === 0 || i >= warmupTimes) {
+        } else if (i === 0 || i >= warmupTimes) {
           const elapsedTime = parseFloat((performance.now() - sessionStartTime).toFixed(2));
-          times.push(elapsedTime);
+          results.push(elapsedTime);
         }
         sessionStartTime = null;
 
@@ -562,7 +568,7 @@
         console.log = originConsoleLog;
       }
 
-      return times;
+      return results;
     }
 
     main();

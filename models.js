@@ -529,54 +529,59 @@ function getFreeDimensionOverrides(modelName) {
   return freeDimensionOverrides;
 }
 
-// depend on global variables feeds and webgpuDevice
+// depend on global variables: feeds, warmupTimes, runTimes, webgpuDevice
 function setFeed(feed, type, data, dims) {
-  let typedArray;
-  let typeBytes;
-  if (type === 'bool') {
-    data = [data];
-    dims = [1];
-    typeBytes = 1;
-  } else if (type === 'int8') {
-    typedArray = Int8Array;
-  } else if (type === 'uint16') {
-    typedArray = Uint16Array;
-  } else if (type === 'float16') {
-    typedArray = Uint16Array;
-  } else if (type === 'float32') {
-    typedArray = Float32Array;
-  } else if (type === 'int32') {
-    typedArray = Int32Array;
-  } else if (type === 'int64') {
-    typedArray = BigInt64Array;
-  }
-  if (typeBytes === undefined) {
-    typeBytes = typedArray.BYTES_PER_ELEMENT;
-  }
-
-  let size, _data;
-  if (Array.isArray(data) || ArrayBuffer.isView(data)) {
-    size = data.length;
-    _data = data;
-  } else {
-    size = dims.reduce((a, b) => a * b);
-    if (data === 'random') {
-      _data = typedArray.from({length: size}, () => Math.random());
-    } else if (data === 'ramp') {
-      _data = typedArray.from({length: size}, (_, i) => i);
-    } else {
-      _data = typedArray.from({length: size}, () => data);
+  for (i = 0; i < warmupTimes + runTimes; i++) {
+    let typedArray;
+    let typeBytes;
+    if (type === 'bool') {
+      data = [data];
+      dims = [1];
+      typeBytes = 1;
+    } else if (type === 'int8') {
+      typedArray = Int8Array;
+    } else if (type === 'uint16') {
+      typedArray = Uint16Array;
+    } else if (type === 'float16') {
+      typedArray = Uint16Array;
+    } else if (type === 'float32') {
+      typedArray = Float32Array;
+    } else if (type === 'int32') {
+      typedArray = Int32Array;
+    } else if (type === 'int64') {
+      typedArray = BigInt64Array;
     }
-  }
+    if (typeBytes === undefined) {
+      typeBytes = typedArray.BYTES_PER_ELEMENT;
+    }
 
-  feeds['cpu'][feed] = new ort.Tensor(type, _data, dims);
-  if ('gpu' in feeds) {
-    const buffer = webgpuDevice.createBuffer({
-      size: size * typeBytes,
-      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-    });
-    webgpuDevice.queue.writeBuffer(buffer, 0, _data);
-    feeds['gpu'][feed] = ort.Tensor.fromGpuBuffer(buffer, {dataType: type, dims});
+    let size, _data;
+    if (Array.isArray(data) || ArrayBuffer.isView(data)) {
+      size = data.length;
+      _data = data;
+    } else {
+      size = dims.reduce((a, b) => a * b);
+      if (data === 'random') {
+        _data = typedArray.from({length: size}, () => Math.random());
+      } else if (data === 'ramp') {
+        _data = typedArray.from({length: size}, (_, i) => i);
+      } else {
+        _data = typedArray.from({length: size}, () => data);
+      }
+    }
+
+    feeds['cpu'].push({});
+    index = feeds['cpu'].length - 1;
+    feeds['cpu'][index][feed] = new ort.Tensor(type, _data, dims);
+    if ('gpu' in feeds) {
+      const buffer = webgpuDevice.createBuffer({
+        size: size * typeBytes,
+        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+      });
+      webgpuDevice.queue.writeBuffer(buffer, 0, _data);
+      feeds['gpu'].push({});
+      feeds['gpu'][index][feed] = ort.Tensor.fromGpuBuffer(buffer, {dataType: type, dims});
+    }
   }
 }
 
