@@ -60,6 +60,7 @@
 
     const enableDebug = getParam("enableDebug") === "true" || false;
     const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
+    const enableGraphCapture = getParam("enableGraphCapture") === "true" || false;
     const enableIoBinding = getParam("enableIoBinding") === "true" || false;
     const enableTrace = getParam("enableTrace") === "true" || false;
     const enableVerbose = getParam("enableVerbose") === "true" || false;
@@ -434,7 +435,7 @@
       }
 
       if (taskEp === "webgpu") {
-        sessionOptions.preferredLayout = layout;
+        sessionOptions.executionProviders[0].preferredLayout = layout;
       }
 
       if (taskEp === "webnn" && deviceType === "cpu") {
@@ -443,6 +444,10 @@
 
       if (taskEp === "webnn" || enableFreeDimensionOverrides) {
         sessionOptions.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
+      }
+
+      if (taskEp === "webgpu" && enableGraphCapture) {
+        sessionOptions.executionProviders[0].graphCaptureEnabled = true;
       }
 
       // Set env
@@ -514,7 +519,7 @@
           results = await session.run(clone(locationFeeds), runOptions);
         } else {
           results = await session.run(locationFeeds, runOptions);
-          if (taskEp === "webgpu" && disableReadback) {
+          if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
             await webgpuDevice.queue.onSubmittedWorkDone();
           }
         }
