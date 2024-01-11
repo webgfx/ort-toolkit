@@ -251,7 +251,7 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
 
-function setFeeds(session, modelName) {
+function getFeedsInfo(session, modelName) {
   let inputs = models[modelName];
   if (inputs instanceof Array) {
     inputs = inputs[0];
@@ -266,13 +266,13 @@ function setFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        feeds[v] = setFeed('float32', 1, [1, kvdim, decSeqLen, 64]);
+        feeds[v] = getFeedInfo('float32', 1, [1, kvdim, decSeqLen, 64]);
       }
     }
-    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
-    setFeed('use_cache_branch', 'bool', true);
-    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
-    setFeed('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddendim]);
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    getFeedInfo('use_cache_branch', 'bool', true);
+    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddendim]);
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
@@ -288,38 +288,38 @@ function setFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v === 'input_ids') {
-        setFeed(v, dtype, value, [1, decSeqLen]);
+        getFeedInfo(v, dtype, value, [1, decSeqLen]);
       }
       if (v === 'input_mask' || v === 'attention_mask') {
-        setFeed(v, dtype, one, [1, decSeqLen]);
+        getFeedInfo(v, dtype, one, [1, decSeqLen]);
       }
       if (v === 'token_type_ids' || v == 'segment_ids') {
-        setFeed(v, dtype, one, [1, decSeqLen]);
+        getFeedInfo(v, dtype, one, [1, decSeqLen]);
       }
     }
   }
 
   if (inputs === 'clip') {
-    setFeed('input_ids', 'int64', 49407n, [1, 77]);
-    setFeed('pixel_values', 'float32', 99, [1, 3, 224, 224]);
-    setFeed('attention_mask', 'int64', 1n, [1, 77]);
+    getFeedInfo('input_ids', 'int64', 49407n, [1, 77]);
+    getFeedInfo('pixel_values', 'float32', 99, [1, 3, 224, 224]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, 77]);
   }
 
   if (inputs === 'detr-resnet-50-2') {
-    setFeed('pixel_values', 'float32', 'random', [1, 3, 800, 800]);
-    setFeed('pixel_mask', 'int64', 1n, [1, 64, 64]);
+    getFeedInfo('pixel_values', 'float32', 'random', [1, 3, 800, 800]);
+    getFeedInfo('pixel_mask', 'int64', 1n, [1, 64, 64]);
   }
 
   if (inputs === 'img224') {
-    setFeed(inputNames[0], 'float32', 'random', [1, 3, 224, 224]);
+    getFeedInfo(inputNames[0], 'float32', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'img224-f16') {
-    setFeed(inputNames[0], 'float16', 'random', [1, 3, 224, 224]);
+    getFeedInfo(inputNames[0], 'float16', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'img224-i8') {
-    setFeed(inputNames[0], 'int8', 'random', [1, 3, 224, 224]);
+    getFeedInfo(inputNames[0], 'int8', 'random', [1, 3, 224, 224]);
   }
 
   if (inputs === 'llm-decoder') {
@@ -331,171 +331,171 @@ function setFeeds(session, modelName) {
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        setFeed(v, 'float32', 1, [1, 12, decSeqLen, 64]);
+        getFeedInfo(v, 'float32', 1, [1, 12, decSeqLen, 64]);
       }
     }
-    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
-    setFeed('attention_mask', 'int64', 1n, [1, decSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, decSeqLen]);
 
     if (modelName.endsWith('merged')) {
-      setFeed('use_cache_branch', 'bool', true);
+      getFeedInfo('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 'm2m100-decoder') {
-    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
-    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
-    setFeed('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
     const encoder_shape = [1, 16, encSeqLen, 64];
     const decoder_shape = [1, 16, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          setFeed(v, 'float32', 1, decoder_shape);
+          getFeedInfo(v, 'float32', 1, decoder_shape);
         } else if (v.includes('encoder')) {
-          setFeed(v, 'float32', 1, encoder_shape);
+          getFeedInfo(v, 'float32', 1, encoder_shape);
         }
       }
     }
-    setFeed('use_cache_branch', 'bool', true);
+    getFeedInfo('use_cache_branch', 'bool', true);
   }
 
   if (inputs === 'm2m100-encoder') {
-    setFeed('input_ids', 'int64', 99n, [1, encSeqLen]);
-    setFeed('attention_mask', 'int64', 1n, [1, encSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, encSeqLen]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, encSeqLen]);
   }
 
   if (inputs === 'mobilenetv3') {
-    setFeed(inputNames[0], 'float32', 'random', [1, 224, 224, 3]);
+    getFeedInfo(inputNames[0], 'float32', 'random', [1, 224, 224, 3]);
   }
 
   if (inputs === 'realesrgan') {
     const modelInfo = modelName.split('-');
     const tileSize = parseInt(modelInfo[1].replace('t', ''));
     const dataType = modelName.endsWith('f16') ? '16' : '32';
-    setFeed(`in_image_float${dataType}_rgb01`, `float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
+    getFeedInfo(`in_image_float${dataType}_rgb01`, `float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
   }
 
   if (inputs === 'sam-b-vision-encoder') {
-    setFeed('pixel_values', 'float32', 'random', [1, 3, 1024, 1024]);
+    getFeedInfo('pixel_values', 'float32', 'random', [1, 3, 1024, 1024]);
   }
 
   if (inputs === 'sam-decoder') {
-    setFeed('image_embeddings', 'float32', 'random', [1, 256, 64, 64]);
-    setFeed('point_coords', 'float32', 'random', [1, 2, 2]);
-    setFeed('point_labels', 'float32', 'random', [1, 2]);
-    setFeed('mask_input', 'float32', 'random', [1, 1, 256, 256]);
-    setFeed('has_mask_input', 'float32', 'random', [1]);
+    getFeedInfo('image_embeddings', 'float32', 'random', [1, 256, 64, 64]);
+    getFeedInfo('point_coords', 'float32', 'random', [1, 2, 2]);
+    getFeedInfo('point_labels', 'float32', 'random', [1, 2]);
+    getFeedInfo('mask_input', 'float32', 'random', [1, 1, 256, 256]);
+    getFeedInfo('has_mask_input', 'float32', 'random', [1]);
     if (inputNames.includes('orig_im_size')) {
-      setFeed('orig_im_size', 'float32', [512, 512], [2]);
+      getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
     }
   }
 
   if (inputs === 'sam-decoder-f16') {
-    setFeed('image_embeddings', 'float16', 'random', [1, 256, 64, 64]);
-    setFeed('point_coords', 'float16', 'random', [1, 2, 2]);
-    setFeed('point_labels', 'float16', 'random', [1, 2]);
-    setFeed('mask_input', 'float16', 'random', [1, 1, 256, 256]);
-    setFeed('has_mask_input', 'float16', 'random', [1]);
+    getFeedInfo('image_embeddings', 'float16', 'random', [1, 256, 64, 64]);
+    getFeedInfo('point_coords', 'float16', 'random', [1, 2, 2]);
+    getFeedInfo('point_labels', 'float16', 'random', [1, 2]);
+    getFeedInfo('mask_input', 'float16', 'random', [1, 1, 256, 256]);
+    getFeedInfo('has_mask_input', 'float16', 'random', [1]);
     if (inputNames.includes('orig_im_size')) {
-      setFeed('orig_im_size', 'float32', [512, 512], [2]);
+      getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
     }
   }
 
   if (inputs === 'sam-encoder') {
-    setFeed('input_image', 'float32', 1, [224, 224, 3]);
+    getFeedInfo('input_image', 'float32', 1, [224, 224, 3]);
   }
 
   if (inputs === 'sd-text-encoder') {
-    setFeed('input_ids', 'int32', 99, [1, encSeqLen]);
+    getFeedInfo('input_ids', 'int32', 99, [1, encSeqLen]);
   }
 
   if (inputs === 'sd-unet') {
-    setFeed('sample', 'float32', 1, [1, 4, 64, 64]);
-    setFeed('timestep', 'int64', 1n, [1]);
-    setFeed('encoder_hidden_states', 'float32', 1, [1, 77, 768]);
+    getFeedInfo('sample', 'float32', 1, [1, 4, 64, 64]);
+    getFeedInfo('timestep', 'int64', 1n, [1]);
+    getFeedInfo('encoder_hidden_states', 'float32', 1, [1, 77, 768]);
   }
 
   if (inputs === 'sd-unet-f16') {
-    setFeed('sample', 'float16', 1, [1, 4, 64, 64]);
-    setFeed('timestep', 'int64', 1n, [1]);
-    setFeed('encoder_hidden_states', 'float16', 1, [1, 77, 768]);
+    getFeedInfo('sample', 'float16', 1, [1, 4, 64, 64]);
+    getFeedInfo('timestep', 'int64', 1n, [1]);
+    getFeedInfo('encoder_hidden_states', 'float16', 1, [1, 77, 768]);
   }
 
   if (inputs === 'sd-vae-decoder-f16') {
-    setFeed('latent_sample', 'float16', 'random', [1, 4, 64, 64]);
+    getFeedInfo('latent_sample', 'float16', 'random', [1, 4, 64, 64]);
   }
 
   if (inputs === 'sd-vae-decoder') {
-    setFeed('latent_sample', 'float32', 'random', [1, 4, 64, 64]);
+    getFeedInfo('latent_sample', 'float32', 'random', [1, 4, 64, 64]);
   }
 
   if (inputs === 'sd-vae-encoder') {
-    setFeed('sample', 'float32', 'random', [1, 3, 512, 512]);
+    getFeedInfo('sample', 'float32', 'random', [1, 3, 512, 512]);
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    setFeed('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
-    setFeed('encoder_hidden_states', 'float32', 'random', [1, encSeqLen, 512]);
-    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, encSeqLen, 512]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
     const decoder_shape = inputs === 't5-decoder' ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          setFeed(v, 'float32', 1, decoder_shape);
+          getFeedInfo(v, 'float32', 1, decoder_shape);
         } else if (v.includes('encoder')) {
-          setFeed(v, 'float32', 1, encoder_shape);
+          getFeedInfo(v, 'float32', 1, encoder_shape);
         }
       }
     }
     if (modelName.endsWith('merged')) {
-      setFeed('use_cache_branch', 'bool', true);
+      getFeedInfo('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 't5-encoder') {
-    setFeed('input_ids', 'int64', 99n, [1, decSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
   }
 
   if (inputs === 'vit-gpt2-image-captioning-decoder') {
-    setFeed('input_ids', 'int64', 99n, [1, 168]);
-    setFeed('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, 168]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
 
     for (var v of inputNames) {
       if (v.startsWith('past_key_values')) {
-        setFeed(v, 'float32', 1, [1, 12, decSeqLen, 64]);
+        getFeedInfo(v, 'float32', 1, [1, 12, decSeqLen, 64]);
       }
     }
     if (modelName.endsWith('merged')) {
-      setFeed('use_cache_branch', 'bool', true);
+      getFeedInfo('use_cache_branch', 'bool', true);
     }
   }
 
   if (inputs === 'whisper-decoder') {
-    setFeed('input_ids', 'int64', 1n, [1, 1]);
-    setFeed('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
+    getFeedInfo('input_ids', 'int64', 1n, [1, 1]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
         if (v.includes('decoder')) {
-          setFeed(v, 'float32', 1, [1, 6, decSeqLen, 64]);
+          getFeedInfo(v, 'float32', 1, [1, 6, decSeqLen, 64]);
         } else if (v.includes('encoder')) {
-          setFeed(v, 'float32', 1, [1, 6, 1500, 64]);
+          getFeedInfo(v, 'float32', 1, [1, 6, 1500, 64]);
         }
       }
     }
     if (modelName.endsWith('merged')) {
-      setFeed('use_cache_branch', 'bool', true);
+      getFeedInfo('use_cache_branch', 'bool', true);
     }
   }
 
   if (isDict(inputs)) {
     for (let key in inputs) {
       let value = inputs[key];
-      setFeed(key, value[0], value[1], value[2]);
+      getFeedInfo(key, value[0], value[1], value[2]);
     }
   }
 }
@@ -529,8 +529,8 @@ function getFreeDimensionOverrides(modelName) {
   return freeDimensionOverrides;
 }
 
-// depend on global variables: feeds, warmupTimes, runTimes, webgpuDevice
-function setFeed(feed, type, data, dims) {
+// depend on global variables: feedsInfo, warmupTimes, runTimes
+function getFeedInfo(feed, type, data, dims) {
   for (i = 0; i < warmupTimes + runTimes; i++) {
     let typedArray;
     let typeBytes;
@@ -570,18 +570,10 @@ function setFeed(feed, type, data, dims) {
       }
     }
 
-    feeds['cpu'].push({});
-    index = feeds['cpu'].length - 1;
-    feeds['cpu'][index][feed] = new ort.Tensor(type, _data, dims);
-    if ('gpu' in feeds) {
-      const buffer = webgpuDevice.createBuffer({
-        size: size * typeBytes,
-        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-      });
-      webgpuDevice.queue.writeBuffer(buffer, 0, _data);
-      feeds['gpu'].push({});
-      feeds['gpu'][index][feed] = ort.Tensor.fromGpuBuffer(buffer, {dataType: type, dims});
+    if (i > feedsInfo.length - 1) {
+      feedsInfo.push(new Map());
     }
+    feedsInfo[i].set(feed, [type, _data, dims, size * typeBytes]);
   }
 }
 

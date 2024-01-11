@@ -80,7 +80,7 @@
     let artifactData = [];
     let artifactIndex = 0;
     const displayPrecision = 2;
-    let feeds;
+    let feedsInfo = [];
     let originConsoleLog;
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
@@ -110,14 +110,8 @@
         webgpuDevice = ort.env.webgpu.device;
       }
 
-      // init feeds
-      if (feeds === undefined) {
-        feeds = {};
-        feeds["cpu"] = [];
-        if (ep === "webgpu" && enableIoBinding) {
-          feeds["gpu"] = [];
-        }
-        setFeeds(session, modelName);
+      if (feedsInfo.length === 0) {
+        getFeedsInfo(session, modelName);
       }
 
       return session;
@@ -150,7 +144,7 @@
       let urls = [];
       let ortFiles;
       if (ep === "webnn") {
-        ortFiles = ["ort.min.js", "ort.webgpu.min.js"];
+        ortFiles = ["ort.min.js"];
       } else {
         if (enableTrace || enableDebug) {
           ortFiles = ["ort.webgpu.js"];
@@ -430,6 +424,7 @@
       let sessionStartTime = performance.now();
       let results = [];
       let totalTime = 0;
+      let webgpuInputBuffer = {};
 
       if (task === "conformance" && disableReadback) {
         throw Error("Can not set disableReadback for conformance");
@@ -493,7 +488,7 @@
       // run a task
       for (let i = 0; i < warmupTimes + runTimes; i++) {
         let result;
-        let locationFeeds;
+        let feeds = {};
 
         if (!sessionStartTime) {
           sessionStartTime = performance.now();
@@ -519,16 +514,27 @@
           logVerbosityLevel: logVerbosityLevel,
         };
 
-        if (taskEp === "webgpu" && enableIoBinding) {
-          locationFeeds = feeds["gpu"][i];
-        } else {
-          locationFeeds = feeds["cpu"][i];
+        for (const [feed, [type, data, dims, bufferSize]] of feedsInfo[i]) {
+          if (taskEp === "webgpu" && enableIoBinding) {
+            if (!(bufferSize in webgpuInputBuffer)) {
+              webgpuInputBuffer[bufferSize] = webgpuDevice.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+              });
+            }
+
+            webgpuDevice.queue.writeBuffer(webgpuInputBuffer[bufferSize], 0, data);
+            feeds[feed] = ort.Tensor.fromGpuBuffer(webgpuInputBuffer[bufferSize], { dataType: type, dims });
+          } else {
+            feeds[feed] = new ort.Tensor(type, data, dims);
+          }
         }
+
         if (taskEp === "webnn") {
           // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          result = await session.run(clone(locationFeeds), runOptions);
+          result = await session.run(clone(feeds), runOptions);
         } else {
-          result = await session.run(locationFeeds, runOptions);
+          result = await session.run(feeds, runOptions);
           if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
             await webgpuDevice.queue.onSubmittedWorkDone();
           }
