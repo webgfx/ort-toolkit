@@ -50,7 +50,10 @@
     const updateModel = getParam("updateModel") === "true" || false;
     let warmupTimes = getParam("warmupTimes") || 0;
     warmupTimes = parseInt(warmupTimes);
-    const wasmThreads = parseInt(getParam("wasmThreads")) || 4;
+    let wasmThreads = parseInt(getParam("wasmThreads")) || 4;
+    if (ep === "webnn") {
+      wasmThreads = 1;
+    }
     const webnnNumThreads = parseInt(getParam("webnnNumThreads")) || 4;
 
     // for developers
