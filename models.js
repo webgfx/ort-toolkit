@@ -26,7 +26,7 @@ const models = {
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model.onnx
   'distilbart-cnn-6-6-decoder': ['distilbart-cnn-6-6-decoder', { 'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168 }],
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model_merged.onnx
-  'distilbart-cnn-6-6-decoder-merged': ['distilbart-cnn-6-6-decoder'],
+  'distilbart-cnn-6-6-decoder-merged': 'distilbart-cnn-6-6-decoder',
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/encoder_model.onnx
   'distilbart-cnn-6-6-encoder': [
     { 'input_ids': ['int64', 99n, [1, 168]], 'attention_mask': ['int64', 1n, [1, 168]] },
@@ -39,7 +39,7 @@ const models = {
   'distilgpt2-decoder': ['llm-decoder', { batch_size: 1, sequence_length: 16 }],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 64, sequence_length: 16}
-  'distilgpt2-decoder-merged': ['llm-decoder'],
+  'distilgpt2-decoder-merged': 'llm-decoder',
   // webnn
   'efficientnet-lite4-11': { 'images:0': ['float32', 'random', [1, 224, 224, 3]] },
 
@@ -52,15 +52,14 @@ const models = {
   'flan-t5-small-decoder':
     ['flan-t5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model_merged.onnx
-  'flan-t5-small-decoder-merged':
-    ['flan-t5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
+  'flan-t5-small-decoder-merged': 'flan-t5-decoder',
   // webnn
   'emotion-ferplus-8': { Input3: ['float32', 'random', [1, 1, 64, 64]] },
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
   'gpt2-decoder': ['llm-decoder', { batch_size: 1, sequence_length: 8 }],
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 16, sequence_length: 8}
-  'gpt2-decoder-merged': ['llm-decoder'],
+  'gpt2-decoder-merged': 'llm-decoder',
   // https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx
   'm2m100-encoder': ['m2m100-encoder', { batch_size: 1, encoder_sequence_length: 128 }],
   // from teams
@@ -90,8 +89,7 @@ const models = {
   'mt5-small-decoder':
     ['mt5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model_merged.onnx
-  'mt5-small-decoder-merged':
-    ['mt5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
+  'mt5-small-decoder-merged': 'mt5-decoder',
 
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/encoder_model.onnx
   'mt5-small-encoder': [
@@ -161,7 +159,7 @@ const models = {
         past_decoder_sequence_length: 16
   }
   */
-  't5-small-decoder-merged': ['t5-decoder'],
+  't5-small-decoder-merged': 't5-decoder',
   // tjs/t5-small/onnx/encoder_model.onnx
   't5-small-encoder': ['t5-encoder', { batch: 1, sequence: 128 }],
 
@@ -180,10 +178,7 @@ const models = {
     { 'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168 }
   ],
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model_merged.onnx
-  'vit-gpt2-image-captioning-decoder-merged': [
-    'vit-gpt2-image-captioning-decoder',
-    { 'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168 }
-  ],
+  'vit-gpt2-image-captioning-decoder-merged': 'vit-gpt2-image-captioning-decoder',
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/encoder_model.onnx
   'vit-gpt2-image-captioning-encoder': [
     { 'pixel_values': ['float32', 1, [1, 3, 224, 224]] },
@@ -193,7 +188,7 @@ const models = {
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model.onnx
   'whisper-tiny-decoder': ['whisper-decoder', 'whisper-decoder'],
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model_merged.onnx
-  'whisper-tiny-decoder-merged': ['whisper-decoder'],
+  'whisper-tiny-decoder-merged': 'whisper-decoder',
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/encoder_model.onnx
   'whisper-tiny-encoder': [
     { input_features: ['float32', 'random', [1, 80, 3000]] },
