@@ -245,6 +245,8 @@ function getFeedsInfo(session, modelName) {
   let inputNames = session.inputNames;
   let decSeqLen = 128;
   let encSeqLen = 128;
+  let batchSize = 1;
+  let seqLen = 128;
 
   if (['bart-large', 'bart-large-12'].indexOf(inputs) >= 0) {
     const kvdim = modelName === 'bart-large' ? 16 : 12;
@@ -336,18 +338,18 @@ function getFeedsInfo(session, modelName) {
 
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2-decoder') {
-      decSeqLen = 8;
+      seqLen = 8;
     } else if (['distilgpt2-decoder', 'distilgpt2-decoder-merged'].indexOf(modelName) >= 0) {
-      decSeqLen = 16;
+      seqLen = 16;
     }
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values')) {
-        getFeedInfo(v, 'float32', 1, [1, 12, decSeqLen, 64]);
+        getFeedInfo(v, 'float32', 1, [batchSize, 12, seqLen, 64]);
       }
     }
-    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
-    getFeedInfo('attention_mask', 'int64', 1n, [1, decSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, seqLen]);
+    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
 
     if (modelName.endsWith('merged')) {
       getFeedInfo('use_cache_branch', 'bool', true);
@@ -448,11 +450,11 @@ function getFeedsInfo(session, modelName) {
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
-    getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, encSeqLen, 512]);
-    getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
-    const encoder_shape = inputs === 't5-decoder' ? [1, 8, encSeqLen, 64] : [1, 6, encSeqLen, 64];
-    const decoder_shape = inputs === 't5-decoder' ? [1, 8, decSeqLen, 64] : [1, 6, decSeqLen, 64];
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSizse, encSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSizse, encSeqLen, 512]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
+    const encoder_shape = inputs === 't5-decoder' ? [batchSizse, 8, encSeqLen, 64] : [batchSizse, 6, encSeqLen, 64];
+    const decoder_shape = inputs === 't5-decoder' ? [batchSizse, 8, decSeqLen, 64] : [batchSizse, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
