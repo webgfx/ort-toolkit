@@ -450,11 +450,11 @@ function getFeedsInfo(session, modelName) {
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSizse, encSeqLen]);
-    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSizse, encSeqLen, 512]);
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 512]);
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
-    const encoder_shape = inputs === 't5-decoder' ? [batchSizse, 8, encSeqLen, 64] : [batchSizse, 6, encSeqLen, 64];
-    const decoder_shape = inputs === 't5-decoder' ? [batchSizse, 8, decSeqLen, 64] : [batchSizse, 6, decSeqLen, 64];
+    const encoder_shape = inputs === 't5-decoder' ? [batchSize, 8, encSeqLen, 64] : [batchSize, 6, encSeqLen, 64];
+    const decoder_shape = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
     for (var k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith('past_key_values.')) {
