@@ -1,69 +1,70 @@
 const models = {
   // daily test
   // tjs/albert-base-v2/onnx/model.onnx. TODO: NaN
-  'albert-base-v2': ['bert64', { batch_size: 1, sequence_length: 128 }],
+  'albert-base-v2': ['bert64', {batch_size: 1, sequence_length: 128}],
   // https://huggingface.co/Xenova/albert-base-v2/tree/main/onnx
   'albert-base-v2-i8': 'bert64',
   // tjs/facebook/bart-large-cnn/onnx/encoder_model.onnx
-  'bart-large-cnn-encoder': ['bert64', { batch_size: 1, encoder_sequence_length: 128 }],
+  'bart-large-cnn-encoder': ['bert64', {batch_size: 1, encoder_sequence_length: 128}],
   // tjs/bert-base-cased/onnx/model.onnx
-  'bert-base-cased': ['bert64', { batch_size: 1, sequence_length: 9 }],
+  'bert-base-cased': ['bert64', {batch_size: 1, sequence_length: 9}],
   // tjs/bert-base-uncased/onnx/model.onnx
-  'bert-base-uncased': ['bert64', { batch_size: 1, sequence_length: 128 }],
+  'bert-base-uncased': ['bert64', {batch_size: 1, sequence_length: 128}],
   // tjs/openai/clip-vit-base-patch16/onnx/model.onnx
   'clip-vit-base-patch16': [
     'clip',
-    { text_batch_size: 1, sequence_length: 77, image_batch_size: 1, num_channels: 3, height: 224, width: 224 },
+    {text_batch_size: 1, sequence_length: 77, image_batch_size: 1, num_channels: 3, height: 224, width: 224},
   ],
   // webnn
   'densenet-9': 'img224',
   // tjs/facebook/detr-resnet-50/onnx/model.onnx. TODO: conformance fails
-  'detr-resnet-50': ['img224', { batch_size: 1, num_channels: 3, height: 224, width: 224 }],
+  'detr-resnet-50': ['img224', {batch_size: 1, num_channels: 3, height: 224, width: 224}],
   // https://huggingface.co/Xenova/detr-resnet-50/tree/main/onnx/model.onnx
   'detr-resnet-50-2': 'detr-resnet-50-2',
   // tjs/facebook/dino-vitb16/onnx/model.onnx
-  'dino-vitb16': ['img224', { batch_size: 1, num_channels: 3, height: 224, width: 224 }],
+  'dino-vitb16': ['img224', {batch_size: 1, num_channels: 3, height: 224, width: 224}],
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model.onnx
-  'distilbart-cnn-6-6-decoder': ['distilbart-cnn-6-6-decoder', { 'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168 }],
+  'distilbart-cnn-6-6-decoder':
+      ['distilbart-cnn-6-6-decoder', {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}],
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/decoder_model_merged.onnx
   'distilbart-cnn-6-6-decoder-merged': 'distilbart-cnn-6-6-decoder',
   // https://huggingface.co/Xenova/distilbart-cnn-6-6/blob/main/onnx/encoder_model.onnx
   'distilbart-cnn-6-6-encoder': [
-    { 'input_ids': ['int64', 99n, [1, 168]], 'attention_mask': ['int64', 1n, [1, 168]] },
-    { 'batch_size': 1, 'encoder_sequence_length': 168 }
+    {'input_ids': ['int64', 99n, [1, 168]], 'attention_mask': ['int64', 1n, [1, 168]]},
+    {'batch_size': 1, 'encoder_sequence_length': 168}
   ],
 
   // tjs/distilbert-base-uncased/onnx/model.onnx
-  'distilbert-base-uncased': ['bert64', { batch_size: 1, sequence_length: 50 }],
+  'distilbert-base-uncased': ['bert64', {batch_size: 1, sequence_length: 50}],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
-  'distilgpt2-decoder': ['llm-decoder', { batch_size: 1, sequence_length: 16 }],
+  'distilgpt2-decoder': ['llm-decoder', {batch_size: 1, sequence_length: 16}],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 64, sequence_length: 16}
   'distilgpt2-decoder-merged': 'llm-decoder',
   // webnn
-  'efficientnet-lite4-11': { 'images:0': ['float32', 'random', [1, 224, 224, 3]] },
+  'efficientnet-lite4-11': {'images:0': ['float32', 'random', [1, 224, 224, 3]]},
 
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/encoder_model.onnx
   'flan-t5-small-encoder': [
-    { 'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]] },
-    { 'batch_size': 1, 'encoder_sequence_length': 128 }
+    {'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]]},
+    {'batch_size': 1, 'encoder_sequence_length': 128}
   ],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model.onnx
   'flan-t5-small-decoder':
-    ['flan-t5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
+      ['flan-t5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
   // https://huggingface.co/Xenova/flan-t5-small/blob/main/onnx/decoder_model_merged.onnx
   'flan-t5-small-decoder-merged': 'flan-t5-decoder',
   // webnn
-  'emotion-ferplus-8': { Input3: ['float32', 'random', [1, 1, 64, 64]] },
+  'emotion-ferplus-8': {Input3: ['float32', 'random', [1, 1, 64, 64]]},
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
-  'gpt2-decoder': ['llm-decoder', { batch_size: 1, sequence_length: 8 }],
+  'gpt2-decoder': ['llm-decoder', {batch_size: 1, sequence_length: 8}],
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 16, sequence_length: 8}
   'gpt2-decoder-merged': 'llm-decoder',
   // https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx
-  'm2m100-encoder': ['m2m100-encoder', { batch_size: 1, encoder_sequence_length: 128 }],
+  'm2m100-encoder': ['m2m100-encoder', {batch_size: 1, encoder_sequence_length: 128}],
   // from teams
-  'mobilenetv2-12': ['img224', { batch_size: 1 }],
+  'mobilenetv2-12': ['img224', {batch_size: 1}],
   // https://huggingface.co/webml/models/tree/main
   // not sure if its really 12
   'mobilenetv2-12-f16': 'img224-f16',
@@ -75,26 +76,26 @@ const models = {
 
   // https://huggingface.co/Xenova/mobilevit-small/blob/main/onnx/model.onnx
   'mobilevit-small': [
-    { 'pixel_values': ['float32', 'random', [1, 3, 256, 256]] },
-    { 'batch_size': 1, 'num_channels': 3, 'height': 256, 'width': 256 }
+    {'pixel_values': ['float32', 'random', [1, 3, 256, 256]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 256, 'width': 256}
   ],
 
   // https://huggingface.co/Xenova/msmarco-distilbert-base-v4/blob/main/onnx/model.onnx
   'msmarco-distilbert-base-v4': [
-    { 'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]] },
-    { 'batch_size': 1, 'sequence_length': 50 }
+    {'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]]},
+    {'batch_size': 1, 'sequence_length': 50}
   ],
 
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model.onnx
   'mt5-small-decoder':
-    ['mt5-decoder', { 'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128 }],
+      ['mt5-decoder', {'batch_size': 1, 'decoder_sequence_length': 128, 'encoder_sequence_length': 128}],
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/decoder_model_merged.onnx
   'mt5-small-decoder-merged': 'mt5-decoder',
 
   // https://huggingface.co/Xenova/mt5-small/blob/main/onnx/encoder_model.onnx
   'mt5-small-encoder': [
-    { 'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]] },
-    { 'batch_size': 1, 'encoder_sequence_length': 128 }
+    {'input_ids': ['int64', 99n, [1, 128]], 'attention_mask': ['int64', 1n, [1, 128]]},
+    {'batch_size': 1, 'encoder_sequence_length': 128}
   ],
 
   // https://huggingface.co/webml/models/tree/main
@@ -110,7 +111,7 @@ const models = {
   'realesrgan-t64-f16': 'realesrgan',
 
   // webnn
-  'resnet50-v2-7': ['img224', { N: 1 }],
+  'resnet50-v2-7': ['img224', {N: 1}],
 
   /*
       https://github.com/vietanhdev/samexporter
@@ -126,18 +127,18 @@ const models = {
       --model-type vit_h --return-single-mask python -m samexporter.export_encoder --checkpoint
       models/sam_vit_h_4b8939.pth --output models/sam-h-encoder.onnx --model-type vit_h --use-preprocess
       */
-  'sam-b-decoder': ['sam-decoder', { num_points: 2 }],  // TODO: conformance fails
-  'sam-b-encoder': ['sam-encoder', { image_height: 224, image_width: 224 }],
+  'sam-b-decoder': ['sam-decoder', {num_points: 2}],  // TODO: conformance fails
+  'sam-b-encoder': ['sam-encoder', {image_height: 224, image_width: 224}],
   // https://huggingface.co/webml/models/blob/main/fp16/segment-anything-vit-h-static-shapes-origin-im-size-initializer-optimized-float16.onnx
   'sam-h-decoder-f16': 'sam-decoder-f16',
 
-  'sd15-vae-decoder': ['sd-vae-decoder', { batch: 1, channels: 4, height: 64, width: 64 }],
-  'sd15-vae-encoder': ['sd-vae-encoder', { batch: 1, channels: 3, height: 512, width: 512 }],
+  'sd15-vae-decoder': ['sd-vae-decoder', {batch: 1, channels: 4, height: 64, width: 64}],
+  'sd15-vae-encoder': ['sd-vae-encoder', {batch: 1, channels: 3, height: 512, width: 512}],
 
-  'sd21-vae-decoder-f16': ['sd-vae-decoder-f16', { batch: 1, channels: 4, height: 64, width: 64 }],
+  'sd21-vae-decoder-f16': ['sd-vae-decoder-f16', {batch: 1, channels: 4, height: 64, width: 64}],
   'sd21-vae-encoder': [
     'sd-vae-encoder',
-    { vaeenc_sample_batch: 1, vaeenc_sample_channels: 3, vaeenc_sample_height: 512, vaeenc_sample_width: 512 }
+    {vaeenc_sample_batch: 1, vaeenc_sample_channels: 3, vaeenc_sample_height: 512, vaeenc_sample_width: 512}
   ],
 
   // https://huggingface.co/Xenova/squeezebert-uncased/blob/main/onnx/model.onnx
@@ -147,11 +148,11 @@ const models = {
       'attention_mask': ['int64', 1n, [1, 50]],
       'token_type_ids': ['int64', 99n, [1, 50]],
     },
-    { 'batch_size': 1, 'sequence_length': 50 }
+    {'batch_size': 1, 'sequence_length': 50}
   ],
 
   // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model.onnx
-  't5-small-decoder': ['t5-decoder', { batch_size: 1, decoder_sequence_length: 128, encoder_sequence_length: 128 }],
+  't5-small-decoder': ['t5-decoder', {batch_size: 1, decoder_sequence_length: 128, encoder_sequence_length: 128}],
   // https://huggingface.co/Xenova/t5-small/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   /*
   {
@@ -161,28 +162,28 @@ const models = {
   */
   't5-small-decoder-merged': 't5-decoder',
   // tjs/t5-small/onnx/encoder_model.onnx
-  't5-small-encoder': ['t5-encoder', { batch: 1, sequence: 128 }],
+  't5-small-encoder': ['t5-encoder', {batch: 1, sequence: 128}],
 
   // webnn
-  'tinyyolov2-8': [{ image: ['float32', 'random', [1, 3, 416, 416]] }, { None: 1 }],
+  'tinyyolov2-8': [{image: ['float32', 'random', [1, 3, 416, 416]]}, {None: 1}],
 
   // https://huggingface.co/Xenova/vit-base-patch16-224/blob/main/onnx/model.onnx
   'vit-base-patch16-224': [
-    { 'pixel_values': ['float32', 1, [1, 3, 224, 224]] },
-    { 'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224 }
+    {'pixel_values': ['float32', 1, [1, 3, 224, 224]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224}
   ],
 
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model.onnx
   'vit-gpt2-image-captioning-decoder': [
     'vit-gpt2-image-captioning-decoder',
-    { 'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168 }
+    {'batch_size': 1, 'decoder_sequence_length': 168, 'encoder_sequence_length': 168}
   ],
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/decoder_model_merged.onnx
   'vit-gpt2-image-captioning-decoder-merged': 'vit-gpt2-image-captioning-decoder',
   // https://huggingface.co/Xenova/vit-gpt2-image-captioning/blob/main/onnx/encoder_model.onnx
   'vit-gpt2-image-captioning-encoder': [
-    { 'pixel_values': ['float32', 1, [1, 3, 224, 224]] },
-    { 'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224 }
+    {'pixel_values': ['float32', 1, [1, 3, 224, 224]]},
+    {'batch_size': 1, 'num_channels': 3, 'height': 224, 'width': 224}
   ],
 
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/decoder_model.onnx
@@ -191,14 +192,14 @@ const models = {
   'whisper-tiny-decoder-merged': 'whisper-decoder',
   // https://huggingface.co/Xenova/whisper-tiny/blob/main/onnx/encoder_model.onnx
   'whisper-tiny-encoder': [
-    { input_features: ['float32', 'random', [1, 80, 3000]] },
-    { batch_size: 1, feature_size: 80, encoder_sequence_length: 3000 }
+    {input_features: ['float32', 'random', [1, 80, 3000]]},
+    {batch_size: 1, feature_size: 80, encoder_sequence_length: 3000}
   ],
 
   // https://huggingface.co/Xenova/xlm-roberta-base/blob/main/onnx/model.onnx
   'xlm-roberta-base': [
-    { 'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]] },
-    { 'batch_size': 1, 'sequence_length': 50 }
+    {'input_ids': ['int64', 99n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]]},
+    {'batch_size': 1, 'sequence_length': 50}
   ],
 
   // TODO
@@ -222,9 +223,9 @@ const models = {
   // to deprecated
   'candy-8': 'img224',
 
-  'mobilenetv2-7': ['img224', { batch_size: 1 }],
-  'mobilenetv2-10': ['img224', { batch_size: 1 }],
-  'resnet50-v1-12': ['img224', { N: 1 }],
+  'mobilenetv2-7': ['img224', {batch_size: 1}],
+  'mobilenetv2-10': ['img224', {batch_size: 1}],
+  'resnet50-v1-12': ['img224', {N: 1}],
   // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/tree/9f697c96d42e5c09437ff14b0a2b287366ce488d/vae_decoder
   'sd-vae-decoder-arthur': 'sd-vae-decoder',
 
@@ -571,18 +572,18 @@ function getFeedInfo(feed, type, data, dims) {
     } else {
       size = dims.reduce((a, b) => a * b);
       if (data === 'random') {
-        _data = typedArray.from({ length: size }, () => Math.random());
+        _data = typedArray.from({length: size}, () => Math.random());
       } else if (data === 'ramp') {
-        _data = typedArray.from({ length: size }, (_, i) => i);
+        _data = typedArray.from({length: size}, (_, i) => i);
       } else {
-        _data = typedArray.from({ length: size }, () => data);
+        _data = typedArray.from({length: size}, () => data);
       }
     }
 
     if (i > feedsInfo.length - 1) {
       feedsInfo.push(new Map());
     }
-    feedsInfo[i].set(feed, [type, _data, dims, size * typeBytes]);
+    feedsInfo[i].set(feed, [type, _data, dims, Math.ceil(size * typeBytes / 16) * 16]);
   }
 }
 
