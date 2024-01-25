@@ -471,6 +471,7 @@ function getFeedsInfo(session, modelName) {
   }
 
   if (inputs === 'vit-gpt2-image-captioning-decoder') {
+    decSeqLen = 168;
     getFeedInfo('input_ids', 'int64', 99n, [1, 168]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
 
