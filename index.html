@@ -146,14 +146,11 @@
       // load scripts
       let urls = [];
       let ortFiles;
-      if (ep === "webnn") {
-        ortFiles = ["ort.min.js"];
+
+      if (enableTrace || enableDebug) {
+        ortFiles = ["ort.all.js"];
       } else {
-        if (enableTrace || enableDebug) {
-          ortFiles = ["ort.webgpu.js"];
-        } else {
-          ortFiles = ["ort.webgpu.min.js"];
-        }
+        ortFiles = ["ort.all.min.js"];
       }
 
       for (let ortFile of ortFiles) {
@@ -185,9 +182,6 @@
       }
       if (enableTrace) {
         ort.env.wasm.trace = true;
-      }
-      if (ep === "webnn") {
-        ort.env.wasm.proxy = true;
       }
       if (task === "artifact") {
         ort.env.debug = true;
@@ -533,14 +527,10 @@
           }
         }
 
-        if (taskEp === "webnn") {
-          // Without clone(), you get DOMException: Failed to execute 'postMessage' on 'Worker': ArrayBuffer at index 0 is already detached.
-          result = await session.run(clone(feeds), runOptions);
-        } else {
-          result = await session.run(feeds, runOptions);
-          if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
-            await webgpuDevice.queue.onSubmittedWorkDone();
-          }
+        result = await session.run(feeds, runOptions);
+
+        if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
+          await webgpuDevice.queue.onSubmittedWorkDone();
         }
 
         if (task === "conformance") {
