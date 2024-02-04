@@ -597,6 +597,7 @@ function getGraphCaptureInfo(modelName) {
         'emotion-ferplus-8',
         'mobilenetv2-12',
         'mobilenetv2-12-f16',
+        'mobilenetv3-small-100',
         'mobilevit-small',
         'resnet50-v2-7',
         'sam-b-encoder',
