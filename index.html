@@ -51,6 +51,7 @@
     let artifactIndex = 0;
     const displayPrecision = 2;
     let feedsInfo = [];
+    let modelBuffer;
     let originConsoleLog;
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
@@ -64,16 +65,6 @@
       if (disableBuffer) {
         session = await ort.InferenceSession.create(modelUrl, sessionOptions);
       } else {
-        // For WebNN, we need a new model buffer everytime as it's in worker thread
-        let modelBuffer;
-        if (updateModel) {
-          modelBuffer = await getModelOPFS(modelName, modelUrl, true);
-        } else {
-          modelBuffer = await getModelOPFS(modelName, modelUrl, false);
-          if (modelBuffer.byteLength < 300) {
-            modelBuffer = await getModelOPFS(modelName, modelUrl, true);
-          }
-        }
         session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
       }
       if (ep === "webgpu") {
@@ -94,7 +85,7 @@
       if (!results || !results[2]) return _default;
 
       const result = decodeURIComponent(results[2].replace(/\+/g, " "));
-      if (type === 'Boolean') {
+      if (type === "Boolean") {
         if (result === "true") {
           return true;
         } else if (result === "false") {
@@ -182,6 +173,15 @@
 
       if (enableTrace) {
         ort.env.wasm.trace = true;
+      }
+
+      if (updateModel) {
+        modelBuffer = await getModelOPFS(modelName, modelUrl, true);
+      } else {
+        modelBuffer = await getModelOPFS(modelName, modelUrl, false);
+        if (modelBuffer.byteLength < 300) {
+          modelBuffer = await getModelOPFS(modelName, modelUrl, true);
+        }
       }
 
       let modelFolder = "";
