@@ -16,68 +16,35 @@
     "use strict";
 
     // url parameters
-    const ep = getParam("ep") || "webgpu";
-    let deviceType = getParam("deviceType") || "gpu";
-    if (ep === "wasm") {
-      deviceType = "cpu";
-    }
-    let layout = getParam("layout");
-    if (layout === null && ep === "webgpu") {
-      layout = "NHWC";
-    }
-
-    const modelName = getParam("modelName") || "mobilenetv2-12";
-    let modelFolder = "";
-    if (["sd-unet-f16", "sd-vae-decoder-arthur", "sd-vae-decoder-f16"].indexOf(modelName) >= 0) {
-      modelFolder = "private/";
-    } else if (["sam-b-vision-encoder"].indexOf(modelName) >= 0) {
-      modelFolder = "tmp/";
-    }
-
-    let modelUrl = getParam("modelUrl") || "wp-27";
-    if (modelUrl === "hf") {
-      modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
-    } else if (modelUrl === "server") {
-      modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
-    } else if (modelUrl === "wp-27") {
-      modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelFolder}${modelName}.onnx`;
-    }
-
-    const ortUrl = getParam("ortUrl");
-    let runTimes = getParam("runTimes") || 0;
-    runTimes = parseInt(runTimes);
-    const task = getParam("task") || "performance";
-    const updateModel = getParam("updateModel") === "true" || false;
-    let warmupTimes = getParam("warmupTimes") || 0;
-    warmupTimes = parseInt(warmupTimes);
-    let wasmThreads = parseInt(getParam("wasmThreads")) || 4;
-    if (ep === "webnn") {
-      wasmThreads = 1;
-    }
-    const webnnNumThreads = parseInt(getParam("webnnNumThreads")) || 4;
-
-    // for developers
-    const disableBuffer = getParam("disableBuffer") === "true" || false;
-    // Don't set this if task is conformance
-    const disableReadback = getParam("disableReadback") === "true" || false;
-
-    const enableDebug = getParam("enableDebug") === "true" || false;
-    const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides") === "true" || false;
-    const enableGraphCapture = getParam("enableGraphCapture") === "true" || false;
-    const enableIoBinding = getParam("enableIoBinding") === "true" || false;
-    const enableTrace = getParam("enableTrace") === "true" || false;
-    const enableVerbose = getParam("enableVerbose") === "true" || false;
-
+    let deviceType = getParam("deviceType", "String", "default");
+    const ep = getParam("ep", "String", "webgpu");
+    const disableBuffer = getParam("disableBuffer", "Boolean", false);
+    let disableReadback = getParam("disableReadback", "Boolean", "default");
+    const enableDebug = getParam("enableDebug", "Boolean", false);
+    const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides", "Boolean", true);
+    let enableGraphCapture = getParam("enableGraphCapture", "Boolean", "default");
+    let enableIoBinding = getParam("enableIoBinding", "Boolean", false);
+    const enableTrace = getParam("enableTrace", "Boolean", false);
+    const enableVerbose = getParam("enableVerbose", "Boolean", false);
     // 'verbose', 'info', 'warning', 'error', 'fatal'
-    const logLevel = getParam("logLevel");
-    //Log severity level. Applies to session load, initialization, etc. 0:Verbose, 1:Info, 2:Warning. 3:Error, 4:Fatal. Default is 2.
-    let logSeverityLevel = getParam("logSeverityLevel") || 2;
-    logSeverityLevel = parseInt(logSeverityLevel);
-    //VLOG level if DEBUG build and session_log_severity_level is 0. Applies to session load, initialization, etc. Default is 0.
-    let logVerbosityLevel = getParam("logVerbosityLevel") || 0;
-    logVerbosityLevel = parseInt(logVerbosityLevel);
-    const optLevel = getParam("optLevel") || "all"; // basic, all, disabled, extended
-    const ortVersion = getParam("ortVersion") || "dev";
+    const logLevel = getParam("logLevel", "String", "warning");
+    // Log severity level. Applies to session load, initialization, etc. 0:Verbose, 1:Info, 2:Warning. 3:Error, 4:Fatal. Default is 2.
+    const logSeverityLevel = getParam("logSeverityLevel", "Number", 2);
+    // VLOG level if DEBUG build and session_log_severity_level is 0. Applies to session load, initialization, etc. Default is 0.
+    const logVerbosityLevel = getParam("logVerbosityLevel", "Number", 0);
+    const modelName = getParam("modelName", "String", "default");
+    let modelUrl = getParam("modelUrl", "String", "wp-27");
+    // basic, all, disabled, extended
+    const optLevel = getParam("optLevel", "String", "all");
+    const ortUrl = getParam("ortUrl", "String", "default");
+    const ortVersion = getParam("ortVersion", "String", "dev");
+    const runTimes = getParam("runTimes", "Number", 0);
+    const task = getParam("task", "String", "performance");
+    const updateModel = getParam("updateModel", "Boolean", false);
+    const warmupTimes = getParam("warmupTimes", "Number", 0);
+    const wasmThreads = getParam("wasmThreads", "Number", 4);
+    const webgpuLayout = getParam("webgpuLayout", "String", "NHWC");
+    const webnnNumThreads = getParam("webnnNumThreads", "Number", 4);
 
     // globals
     let artifactData = [];
@@ -120,13 +87,24 @@
       return session;
     }
 
-    function getParam(name) {
+    function getParam(name, type, _default) {
       name = name.replace(/[\[\]]/g, "\\$&");
       let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)", "i");
       let results = regex.exec(window.location.href);
-      if (!results) return null;
-      if (!results[2]) return "";
-      return decodeURIComponent(results[2].replace(/\+/g, " "));
+      if (!results || !results[2]) return _default;
+
+      const result = decodeURIComponent(results[2].replace(/\+/g, " "));
+      if (type === 'Boolean') {
+        if (result === "true") {
+          return true;
+        } else if (result === "false") {
+          return false;
+        }
+      } else if (type === "Number") {
+        return parseInt(result);
+      } else {
+        return result;
+      }
     }
 
     async function loadScript(url) {
@@ -154,14 +132,14 @@
       }
 
       for (let ortFile of ortFiles) {
-        if (ortUrl) {
+        if (ortUrl === "default") {
+          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/${ortFile}`);
+        } else {
           if (ortUrl.startsWith("gh/")) {
             urls.push(`https://webatintel.github.io/ort-web/${ortUrl.replace("gh/", "")}/${ortFile}`);
           } else {
             urls.push(`${ortUrl}/js/web/dist/${ortFile}`);
           }
-        } else {
-          urls.push(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/${ortFile}`);
         }
       }
 
@@ -170,19 +148,64 @@
         await loadScript(url);
       }
 
-      // Set env
-      ort.env.wasm.numThreads = wasmThreads;
-      ort.env.wasm.simd = true;
+      // specific settings, after ort is ready
+      if (deviceType === "default") {
+        if (ep === "wasm") {
+          deviceType = "cpu";
+        } else {
+          deviceType = "gpu";
+        }
+      }
+
+      if (disableReadback === "default") {
+        if (ep === "webgpu" && task !== "conformance") {
+          disableReadback = true;
+        } else {
+          disableReadback = false;
+        }
+      }
 
       if (enableDebug) {
         ort.env.debug = true;
       }
-      if (logLevel) {
-        ort.env.logLevel = logLevel;
+
+      if (enableGraphCapture === "default") {
+        if (ep === "webgpu" && getGraphCaptureInfo(modelName)) {
+          enableGraphCapture = true;
+        } else {
+          enableGraphCapture = false;
+        }
       }
+      if (enableGraphCapture) {
+        enableIoBinding = true;
+      }
+
       if (enableTrace) {
         ort.env.wasm.trace = true;
       }
+
+      let modelFolder = "";
+      if (["sd-unet-f16", "sd-vae-decoder-arthur", "sd-vae-decoder-f16"].indexOf(modelName) >= 0) {
+        modelFolder = "private/";
+      } else if (["sam-b-vision-encoder"].indexOf(modelName) >= 0) {
+        modelFolder = "tmp/";
+      }
+
+      if (modelUrl === "hf") {
+        modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
+      } else if (modelUrl === "server") {
+        modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
+      } else if (modelUrl === "wp-27") {
+        modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelFolder}${modelName}.onnx`;
+      }
+
+      ort.env.wasm.numThreads = wasmThreads;
+      ort.env.wasm.simd = true;
+
+      if (logLevel) {
+        ort.env.logLevel = logLevel;
+      }
+
       if (task === "artifact") {
         ort.env.debug = true;
         ort.env.logLevel = "info";
@@ -429,7 +452,6 @@
 
       // override console.log
       if (task.includes("Profiling") || task === "artifact") {
-        // This doesn't work for WebNN as it's in worker thread
         originConsoleLog = console.log;
         console.log = function () {
           processConsoleLog(arguments);
@@ -454,12 +476,16 @@
         logVerbosityLevel: logVerbosityLevel,
       };
 
+      if (taskEp === "webgpu" && enableGraphCapture) {
+        sessionOptions.enableGraphCapture = true;
+      }
+
       if (taskEp === "webgpu" && (disableReadback || enableIoBinding)) {
         sessionOptions.preferredOutputLocation = "gpu-buffer";
       }
 
       if (taskEp === "webgpu") {
-        sessionOptions.executionProviders[0].preferredLayout = layout;
+        sessionOptions.executionProviders[0].preferredLayout = webgpuLayout;
       }
 
       if (taskEp === "webnn" && deviceType === "cpu") {
@@ -468,10 +494,6 @@
 
       if (taskEp === "webnn" || enableFreeDimensionOverrides) {
         sessionOptions.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
-      }
-
-      if (taskEp === "webgpu" && enableGraphCapture) {
-        sessionOptions.executionProviders[0].graphCaptureEnabled = true;
       }
 
       // create session

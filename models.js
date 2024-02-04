@@ -1,6 +1,6 @@
 const models = {
   // daily test
-  // tjs/albert-base-v2/onnx/model.onnx. TODO: NaN
+  // tjs/albert-base-v2/onnx/model.onnx.
   'albert-base-v2': ['bert64', {batch_size: 1, sequence_length: 128}],
   // https://huggingface.co/Xenova/albert-base-v2/tree/main/onnx
   'albert-base-v2-i8': 'bert64',
@@ -36,7 +36,7 @@ const models = {
 
   // tjs/distilbert-base-uncased/onnx/model.onnx
   'distilbert-base-uncased': ['bert64', {batch_size: 1, sequence_length: 50}],
-  // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model.onnx. TODO: NaN
+  // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model.onnx.
   'distilgpt2-decoder': ['llm-decoder', {batch_size: 1, sequence_length: 16}],
   // https://huggingface.co/Xenova/distilgpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 64, sequence_length: 16}
@@ -232,6 +232,54 @@ const models = {
   // Temp
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
+
+// depend on global variables: feedsInfo, warmupTimes, runTimes
+function getFeedInfo(feed, type, data, dims) {
+  for (i = 0; i < warmupTimes + runTimes; i++) {
+    let typedArray;
+    let typeBytes;
+    if (type === 'bool') {
+      data = [data];
+      dims = [1];
+      typeBytes = 1;
+    } else if (type === 'int8') {
+      typedArray = Int8Array;
+    } else if (type === 'uint16') {
+      typedArray = Uint16Array;
+    } else if (type === 'float16') {
+      typedArray = Uint16Array;
+    } else if (type === 'float32') {
+      typedArray = Float32Array;
+    } else if (type === 'int32') {
+      typedArray = Int32Array;
+    } else if (type === 'int64') {
+      typedArray = BigInt64Array;
+    }
+    if (typeBytes === undefined) {
+      typeBytes = typedArray.BYTES_PER_ELEMENT;
+    }
+
+    let size, _data;
+    if (Array.isArray(data) || ArrayBuffer.isView(data)) {
+      size = data.length;
+      _data = data;
+    } else {
+      size = dims.reduce((a, b) => a * b);
+      if (data === 'random') {
+        _data = typedArray.from({length: size}, () => Math.random());
+      } else if (data === 'ramp') {
+        _data = typedArray.from({length: size}, (_, i) => i);
+      } else {
+        _data = typedArray.from({length: size}, () => data);
+      }
+    }
+
+    if (i > feedsInfo.length - 1) {
+      feedsInfo.push(new Map());
+    }
+    feedsInfo[i].set(feed, [type, _data, dims, Math.ceil(size * typeBytes / 16) * 16]);
+  }
+}
 
 function getFeedsInfo(session, modelName) {
   let inputs = models[modelName];
@@ -540,51 +588,26 @@ function getFreeDimensionOverrides(modelName) {
   return freeDimensionOverrides;
 }
 
-// depend on global variables: feedsInfo, warmupTimes, runTimes
-function getFeedInfo(feed, type, data, dims) {
-  for (i = 0; i < warmupTimes + runTimes; i++) {
-    let typedArray;
-    let typeBytes;
-    if (type === 'bool') {
-      data = [data];
-      dims = [1];
-      typeBytes = 1;
-    } else if (type === 'int8') {
-      typedArray = Int8Array;
-    } else if (type === 'uint16') {
-      typedArray = Uint16Array;
-    } else if (type === 'float16') {
-      typedArray = Uint16Array;
-    } else if (type === 'float32') {
-      typedArray = Float32Array;
-    } else if (type === 'int32') {
-      typedArray = Int32Array;
-    } else if (type === 'int64') {
-      typedArray = BigInt64Array;
-    }
-    if (typeBytes === undefined) {
-      typeBytes = typedArray.BYTES_PER_ELEMENT;
-    }
-
-    let size, _data;
-    if (Array.isArray(data) || ArrayBuffer.isView(data)) {
-      size = data.length;
-      _data = data;
-    } else {
-      size = dims.reduce((a, b) => a * b);
-      if (data === 'random') {
-        _data = typedArray.from({length: size}, () => Math.random());
-      } else if (data === 'ramp') {
-        _data = typedArray.from({length: size}, (_, i) => i);
-      } else {
-        _data = typedArray.from({length: size}, () => data);
-      }
-    }
-
-    if (i > feedsInfo.length - 1) {
-      feedsInfo.push(new Map());
-    }
-    feedsInfo[i].set(feed, [type, _data, dims, Math.ceil(size * typeBytes / 16) * 16]);
+function getGraphCaptureInfo(modelName) {
+  if ([
+        'densenet-9',
+        'detr-resnet-50',
+        'dino-vitb16',
+        'efficientnet-lite4-11',
+        'emotion-ferplus-8',
+        'mobilenetv2-12',
+        'mobilenetv2-12-f16',
+        'mobilevit-small',
+        'resnet50-v2-7',
+        'sam-b-encoder',
+        'tinyyolov2-8',
+        'vit-base-patch16-224',
+        'vit-gpt2-image-captioning-encoder',
+        'whisper-tiny-encoder',
+      ].indexOf(modelName) >= 0) {
+    return true;
+  } else {
+    return false;
   }
 }
 
