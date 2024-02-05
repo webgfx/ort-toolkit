@@ -612,6 +612,16 @@ function getGraphCaptureInfo(modelName) {
   }
 }
 
+function getModelFolderInfo(modelName) {
+  modelFolder = '';
+  if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
+    modelFolder = 'private/';
+  } else if (['sam-b-vision-encoder'].indexOf(modelName) >= 0) {
+    modelFolder = 'tmp/';
+  }
+  return modelFolder;
+}
+
 function isDict(v) {
   return typeof v === 'object' && v !== null && !(v instanceof Array) && !(v instanceof Date);
 }
