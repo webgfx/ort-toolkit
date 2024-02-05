@@ -38,10 +38,10 @@
     const optLevel = getParam("optLevel", "String", "all");
     const ortUrl = getParam("ortUrl", "String", "default");
     const ortVersion = getParam("ortVersion", "String", "dev");
-    const runTimes = getParam("runTimes", "Number", 0);
+    let runTimes = getParam("runTimes", "Number", 0);
     const task = getParam("task", "String", "performance");
     const updateModel = getParam("updateModel", "Boolean", false);
-    const warmupTimes = getParam("warmupTimes", "Number", 0);
+    let warmupTimes = getParam("warmupTimes", "Number", 0);
     const wasmThreads = getParam("wasmThreads", "Number", 4);
     const webgpuLayout = getParam("webgpuLayout", "String", "NHWC");
     const webnnNumThreads = getParam("webnnNumThreads", "Number", 4);
