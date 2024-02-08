@@ -15,6 +15,9 @@ const models = {
     'clip',
     {text_batch_size: 1, sequence_length: 77, image_batch_size: 1, num_channels: 3, height: 224, width: 224},
   ],
+  // https://huggingface.co/Xenova/codegen-350M-mono/tree/main/onnx
+  'codegen-350m-mono-decoder': ['codegen-350m-mono-decoder', {'batch_size': 1, 'sequence_length': 8}],
+  'codegen-350m-mono-decoder-merged': 'codegen-350m-mono-decoder',
   // webnn
   'densenet-9': 'img224',
   // tjs/facebook/detr-resnet-50/onnx/model.onnx. TODO: conformance fails
@@ -335,6 +338,11 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('input_ids', 'int64', 49407n, [1, 77]);
     getFeedInfo('pixel_values', 'float32', 99, [1, 3, 224, 224]);
     getFeedInfo('attention_mask', 'int64', 1n, [1, 77]);
+  }
+
+  if (inputs === 'codegen-350m-mono-decoder') {
+    getFeedInfo('input_ids', 'int64', 99n, [1, 8]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, 8]);
   }
 
   if (inputs === 'detr-resnet-50-2') {
