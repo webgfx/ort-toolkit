@@ -284,6 +284,14 @@ function getFeedInfo(feed, type, data, dims) {
   }
 }
 
+function getPastKeyValuesInfo(inputNames, dims) {
+  for (var inputName of inputNames) {
+    if (inputName.startsWith('past_key_values.')) {
+      getFeedInfo(inputName, 'float32', 1, dims);
+    }
+  }
+}
+
 function getFeedsInfo(session, modelName) {
   let inputs = models[modelName];
   if (inputs instanceof Array) {
@@ -296,18 +304,13 @@ function getFeedsInfo(session, modelName) {
   let seqLen = 128;
 
   if (['bart-large', 'bart-large-12'].indexOf(inputs) >= 0) {
-    const kvdim = modelName === 'bart-large' ? 16 : 12;
-    const hiddendim = modelName === 'bart-large' ? 1024 : 768;
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values')) {
-        feeds[v] = getFeedInfo('float32', 1, [1, kvdim, decSeqLen, 64]);
-      }
-    }
+    const kvDim = modelName === 'bart-large' ? 16 : 12;
+    const hiddenDim = modelName === 'bart-large' ? 1024 : 768;
+
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
-    getFeedInfo('use_cache_branch', 'bool', true);
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
-    getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddendim]);
+    getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddenDim]);
+    getPastKeyValuesInfo(inputNames, [1, kvDim, seqLen, 64]);
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
@@ -341,8 +344,9 @@ function getFeedsInfo(session, modelName) {
   }
 
   if (inputs === 'codegen-350m-mono-decoder') {
-    getFeedInfo('input_ids', 'int64', 99n, [1, 8]);
     getFeedInfo('attention_mask', 'int64', 1n, [1, 8]);
+    getFeedInfo('input_ids', 'int64', 99n, [1, 8]);
+    getPastKeyValuesInfo(inputNames, [batchSize, 16, seqLen, 64]);
   }
 
   if (inputs === 'detr-resnet-50-2') {
@@ -357,23 +361,7 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
-
-    const encoder_shape = [1, 16, encSeqLen, 64];
-    const decoder_shape = [1, 16, decSeqLen, 64];
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values.')) {
-        if (v.includes('decoder')) {
-          getFeedInfo(v, 'float32', 1, decoder_shape);
-        } else if (v.includes('encoder')) {
-          getFeedInfo(v, 'float32', 1, encoder_shape);
-        }
-      }
-    }
-
-    if (modelName.endsWith('merged')) {
-      getFeedInfo('use_cache_branch', 'bool', true);
-    }
+    getPastKeyValuesInfo(inputNames, [1, 16, seqLen, 64]);
   }
 
   if (inputs === 'img224') {
@@ -394,37 +382,17 @@ function getFeedsInfo(session, modelName) {
     } else if (['distilgpt2-decoder', 'distilgpt2-decoder-merged'].indexOf(modelName) >= 0) {
       seqLen = 16;
     }
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values')) {
-        getFeedInfo(v, 'float32', 1, [batchSize, 12, seqLen, 64]);
-      }
-    }
+
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, seqLen]);
     getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
-
-    if (modelName.endsWith('merged')) {
-      getFeedInfo('use_cache_branch', 'bool', true);
-    }
+    getPastKeyValuesInfo(inputNames, [batchSize, 12, seqLen, 64]);
   }
 
   if (inputs === 'm2m100-decoder') {
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
-    const encoder_shape = [1, 16, encSeqLen, 64];
-    const decoder_shape = [1, 16, decSeqLen, 64];
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values.')) {
-        if (v.includes('decoder')) {
-          getFeedInfo(v, 'float32', 1, decoder_shape);
-        } else if (v.includes('encoder')) {
-          getFeedInfo(v, 'float32', 1, encoder_shape);
-        }
-      }
-    }
-    getFeedInfo('use_cache_branch', 'bool', true);
+    getPastKeyValuesInfo(inputNames, [1, 16, seqLen, 64]);
   }
 
   if (inputs === 'm2m100-encoder') {
@@ -505,21 +473,8 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 512]);
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
-    const encoder_shape = inputs === 't5-decoder' ? [batchSize, 8, encSeqLen, 64] : [batchSize, 6, encSeqLen, 64];
-    const decoder_shape = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values.')) {
-        if (v.includes('decoder')) {
-          getFeedInfo(v, 'float32', 1, decoder_shape);
-        } else if (v.includes('encoder')) {
-          getFeedInfo(v, 'float32', 1, encoder_shape);
-        }
-      }
-    }
-    if (modelName.endsWith('merged')) {
-      getFeedInfo('use_cache_branch', 'bool', true);
-    }
+    const dims = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
+    getPastKeyValuesInfo(inputNames, dims);
   }
 
   if (inputs === 't5-encoder') {
@@ -530,33 +485,17 @@ function getFeedsInfo(session, modelName) {
     decSeqLen = 168;
     getFeedInfo('input_ids', 'int64', 99n, [1, 168]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
-
-    for (var v of inputNames) {
-      if (v.startsWith('past_key_values')) {
-        getFeedInfo(v, 'float32', 1, [1, 12, decSeqLen, 64]);
-      }
-    }
-    if (modelName.endsWith('merged')) {
-      getFeedInfo('use_cache_branch', 'bool', true);
-    }
+    getPastKeyValuesInfo(inputNames, [1, 12, decSeqLen, 64]);
   }
 
   if (inputs === 'whisper-decoder') {
     getFeedInfo('input_ids', 'int64', 1n, [1, 1]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v.startsWith('past_key_values.')) {
-        if (v.includes('decoder')) {
-          getFeedInfo(v, 'float32', 1, [1, 6, decSeqLen, 64]);
-        } else if (v.includes('encoder')) {
-          getFeedInfo(v, 'float32', 1, [1, 6, 1500, 64]);
-        }
-      }
-    }
-    if (modelName.endsWith('merged')) {
-      getFeedInfo('use_cache_branch', 'bool', true);
-    }
+    getPastKeyValuesInfo(inputNames, [1, 6, seqLen, 64]);
+  }
+
+  if (inputNames.includes('use_cache_branch')) {
+    getFeedInfo('use_cache_branch', 'bool', true);
   }
 
   if (isDict(inputs)) {
