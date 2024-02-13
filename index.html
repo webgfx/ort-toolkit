@@ -55,13 +55,13 @@
     let originConsoleLog;
     let ortProfilingData = [];
     let ortProfilingIndex = 0;
+    let session;
     const unitConversionFactor = 1000000;
     let webgpuDevice;
     let webgpuProfilingData = [];
     let webgpuProfilingIndex = 0;
 
     async function createSession(sessionOptions) {
-      let session;
       if (disableBuffer) {
         session = await ort.InferenceSession.create(modelUrl, sessionOptions);
       } else {
@@ -72,10 +72,8 @@
       }
 
       if (feedsInfo.length === 0) {
-        getFeedsInfo(session, modelName);
+        getFeedsInfo(modelName);
       }
-
-      return session;
     }
 
     function getParam(name, type, _default) {
@@ -435,7 +433,6 @@
     // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
     async function runTask(taskEp) {
-      let session;
       let sessionStartTime = performance.now();
       let results = [];
       let totalTime = 0;
@@ -494,7 +491,7 @@
       // create session
       if (task != "ortProfiling") {
         const sessionCreateStartTime = performance.now();
-        session = await createSession(sessionOptions);
+        await createSession(sessionOptions);
         const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
         console.info(`${elapsedTime}ms was used to create session`);
       }
@@ -518,7 +515,7 @@
 
         if (task === "ortProfiling") {
           const sessionCreateStartTime = performance.now();
-          session = await createSession(sessionOptions);
+          await createSession(sessionOptions);
           const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
           console.info(`${elapsedTime}ms was used to create session`);
         }

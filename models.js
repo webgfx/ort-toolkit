@@ -236,8 +236,11 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
 
-// depend on global variables: feedsInfo, warmupTimes, runTimes
+// depend on global variables: feedsInfo, runTimes, session, warmupTimes
 function getFeedInfo(feed, type, data, dims) {
+  if (!session.inputNames.includes(feed)) {
+    return;
+  }
   for (i = 0; i < warmupTimes + runTimes; i++) {
     let typedArray;
     let typeBytes;
@@ -284,20 +287,20 @@ function getFeedInfo(feed, type, data, dims) {
   }
 }
 
-function getPastKeyValuesInfo(inputNames, dims) {
-  for (var inputName of inputNames) {
+// depend on global variables: session
+function getPastKeyValuesInfo(dims) {
+  for (var inputName of session.inputNames) {
     if (inputName.startsWith('past_key_values.')) {
       getFeedInfo(inputName, 'float32', 1, dims);
     }
   }
 }
 
-function getFeedsInfo(session, modelName) {
+function getFeedsInfo(modelName) {
   let inputs = models[modelName];
   if (inputs instanceof Array) {
     inputs = inputs[0];
   }
-  let inputNames = session.inputNames;
   let decSeqLen = 128;
   let encSeqLen = 128;
   let batchSize = 1;
@@ -310,7 +313,7 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, hiddenDim]);
-    getPastKeyValuesInfo(inputNames, [1, kvDim, seqLen, 64]);
+    getPastKeyValuesInfo([1, kvDim, seqLen, 64]);
   }
 
   if (['bert', 'bert64'].indexOf(inputs) >= 0) {
@@ -323,18 +326,11 @@ function getFeedsInfo(session, modelName) {
     const value = inputs === 'bert' ? 99 : 99n;
     const one = inputs === 'bert' ? 1 : 1n;
 
-    for (var k in inputNames) {
-      const v = inputNames[k];
-      if (v === 'input_ids') {
-        getFeedInfo(v, dtype, value, [1, decSeqLen]);
-      }
-      if (v === 'input_mask' || v === 'attention_mask') {
-        getFeedInfo(v, dtype, one, [1, decSeqLen]);
-      }
-      if (v === 'token_type_ids' || v == 'segment_ids') {
-        getFeedInfo(v, dtype, one, [1, decSeqLen]);
-      }
-    }
+    getFeedInfo('input_ids', dtype, value, [1, decSeqLen]);
+    getFeedInfo('input_mask', dtype, one, [1, decSeqLen]);
+    getFeedInfo('attention_mask', dtype, one, [1, decSeqLen]);
+    getFeedInfo('token_type_ids', dtype, one, [1, decSeqLen]);
+    getFeedInfo('segment_ids', dtype, one, [1, decSeqLen]);
   }
 
   if (inputs === 'clip') {
@@ -346,7 +342,7 @@ function getFeedsInfo(session, modelName) {
   if (inputs === 'codegen-350m-mono-decoder') {
     getFeedInfo('attention_mask', 'int64', 1n, [1, 8]);
     getFeedInfo('input_ids', 'int64', 99n, [1, 8]);
-    getPastKeyValuesInfo(inputNames, [batchSize, 16, seqLen, 64]);
+    getPastKeyValuesInfo([batchSize, 16, seqLen, 64]);
   }
 
   if (inputs === 'detr-resnet-50-2') {
@@ -357,11 +353,10 @@ function getFeedsInfo(session, modelName) {
   if (inputs === 'distilbart-cnn-6-6-decoder') {
     decSeqLen = 168;
     encSeqLen = 168;
-
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
-    getPastKeyValuesInfo(inputNames, [1, 16, seqLen, 64]);
+    getPastKeyValuesInfo([1, 16, seqLen, 64]);
   }
 
   if (inputs === 'img224') {
@@ -385,14 +380,14 @@ function getFeedsInfo(session, modelName) {
 
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, seqLen]);
     getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
-    getPastKeyValuesInfo(inputNames, [batchSize, 12, seqLen, 64]);
+    getPastKeyValuesInfo([batchSize, 12, seqLen, 64]);
   }
 
   if (inputs === 'm2m100-decoder') {
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
-    getPastKeyValuesInfo(inputNames, [1, 16, seqLen, 64]);
+    getPastKeyValuesInfo([1, 16, seqLen, 64]);
   }
 
   if (inputs === 'm2m100-encoder') {
@@ -421,9 +416,7 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('point_labels', 'float32', 'random', [1, 2]);
     getFeedInfo('mask_input', 'float32', 'random', [1, 1, 256, 256]);
     getFeedInfo('has_mask_input', 'float32', 'random', [1]);
-    if (inputNames.includes('orig_im_size')) {
-      getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
-    }
+    getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
   }
 
   if (inputs === 'sam-decoder-f16') {
@@ -432,9 +425,7 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('point_labels', 'float16', 'random', [1, 2]);
     getFeedInfo('mask_input', 'float16', 'random', [1, 1, 256, 256]);
     getFeedInfo('has_mask_input', 'float16', 'random', [1]);
-    if (inputNames.includes('orig_im_size')) {
-      getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
-    }
+    getFeedInfo('orig_im_size', 'float32', [512, 512], [2]);
   }
 
   if (inputs === 'sam-encoder') {
@@ -474,7 +465,7 @@ function getFeedsInfo(session, modelName) {
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 512]);
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
     const dims = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
-    getPastKeyValuesInfo(inputNames, dims);
+    getPastKeyValuesInfo(dims);
   }
 
   if (inputs === 't5-encoder') {
@@ -485,18 +476,16 @@ function getFeedsInfo(session, modelName) {
     decSeqLen = 168;
     getFeedInfo('input_ids', 'int64', 99n, [1, 168]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 168, 768]);
-    getPastKeyValuesInfo(inputNames, [1, 12, decSeqLen, 64]);
+    getPastKeyValuesInfo([1, 12, decSeqLen, 64]);
   }
 
   if (inputs === 'whisper-decoder') {
     getFeedInfo('input_ids', 'int64', 1n, [1, 1]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
-    getPastKeyValuesInfo(inputNames, [1, 6, seqLen, 64]);
+    getPastKeyValuesInfo([1, 6, 1500, 64]);
   }
 
-  if (inputNames.includes('use_cache_branch')) {
-    getFeedInfo('use_cache_branch', 'bool', true);
-  }
+  getFeedInfo('use_cache_branch', 'bool', true);
 
   if (isDict(inputs)) {
     for (let key in inputs) {
