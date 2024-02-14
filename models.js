@@ -301,6 +301,7 @@ function getFeedsInfo(modelName) {
   if (inputs instanceof Array) {
     inputs = inputs[0];
   }
+  const inputNames = session.inputNames;
   let decSeqLen = 128;
   let encSeqLen = 128;
   let batchSize = 1;
