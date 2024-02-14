@@ -554,11 +554,21 @@
         if (task === "conformance") {
           results.push([]);
           let index = results.length - 1;
+          let _result;
           for (let i = 0; i < session.outputNames.length; i++) {
             if (taskEp === "webgpu" && enableIoBinding) {
-              results[index].push(await result[session.outputNames[i]].getData(true));
+              _result = await result[session.outputNames[i]].getData(true);
             } else {
-              results[index].push(result[session.outputNames[i]]["data"]);
+              _result = result[session.outputNames[i]]["data"];
+            }
+            if (_result instanceof Uint16Array && modelName.endsWith("-f16")) {
+              const _f16Result = [];
+              for (let j = 0; j < _result.length; j++) {
+                _f16Result.push(float16ToNumber(_result[j]));
+              }
+              results[index].push(_f16Result);
+            } else {
+              results[index].push(_result);
             }
           }
         } else if (i === 0 || i >= warmupTimes) {
