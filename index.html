@@ -386,8 +386,12 @@
 
       if (task === "conformance") {
         let _results = [];
-        for (i = 0; i < data[0].length; i++) {
-          _results.push(compare(data[0][i], data[1][i]));
+        for (let i = 0; i < data[0].length; i++) {
+          _results.push([]);
+          for (let j = 0; j < data[0][i].length; j++) {
+            _results[i].push(compare(data[0][i][j], data[1][i][j]));
+          }
+          _results[i] = `[${_results[i].join(", ")}]`;
         }
         result["result"] = _results.join(", ");
 
@@ -548,10 +552,14 @@
         }
 
         if (task === "conformance") {
-          if (taskEp === "webgpu" && enableIoBinding) {
-            results.push(await result[session.outputNames[0]].getData(true));
-          } else {
-            results.push(result[session.outputNames[0]]["data"]);
+          results.push([]);
+          let index = results.length - 1;
+          for (let i = 0; i < session.outputNames.length; i++) {
+            if (taskEp === "webgpu" && enableIoBinding) {
+              results[index].push(await result[session.outputNames[i]].getData(true));
+            } else {
+              results[index].push(result[session.outputNames[i]]["data"]);
+            }
           }
         } else if (i === 0 || i >= warmupTimes) {
           const elapsedTime = parseFloat((performance.now() - sessionStartTime).toFixed(2));
