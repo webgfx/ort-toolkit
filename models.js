@@ -236,6 +236,48 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
 
+function getRandomIntInclusive(min, max) {
+  const minCeiled = Math.ceil(min);
+  const maxFloored = Math.floor(max);
+  // The maximum is inclusive and the minimum is inclusive
+  return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled);
+}
+
+function getRandom(type) {
+  let min, max;
+
+  if (type === 'bool') {
+    min = 0;
+    max = 1;
+    return getRandomIntInclusive(min, max);
+  } else if (type === 'int8') {
+    min = -(2 ** 7);
+    max = 2 ** 7 - 1;
+    return getRandomIntInclusive(min, max);
+  } else if (type === 'float16') {
+    min = 0;
+    // F16 valid bits range: (Positive) 0x0000~0x7BFF (Negative) 0x8000~0xFBFF
+    // F16 valid numeric range: -65504~65504
+    min = 0;
+    max = 1000;
+    return getRandomIntInclusive(min, max);
+  } else if (type === 'int32') {
+    min = -(2 ** 31);
+    max = 2 ** 31 - 1;
+    return getRandomIntInclusive(min, max);
+  } else if (type === 'uint32') {
+    min = 0;
+    max = 2 ** 32 - 1;
+    return getRandomIntInclusive(min, max);
+  } else if (type === 'float32') {
+    return Math.random() * 10;
+  } else if (type === 'int64') {
+    min = -(2 ** 63);
+    max = 2 ** 63 - 1;
+    return getRandomIntInclusive(min, max);
+  }
+}
+
 // depend on global variables: feedsInfo, runTimes, session, warmupTimes
 function getFeedInfo(feed, type, data, dims) {
   if (!session.inputNames.includes(feed)) {
@@ -250,14 +292,14 @@ function getFeedInfo(feed, type, data, dims) {
       typeBytes = 1;
     } else if (type === 'int8') {
       typedArray = Int8Array;
-    } else if (type === 'uint16') {
-      typedArray = Uint16Array;
     } else if (type === 'float16') {
       typedArray = Uint16Array;
-    } else if (type === 'float32') {
-      typedArray = Float32Array;
     } else if (type === 'int32') {
       typedArray = Int32Array;
+    } else if (type === 'uint32') {
+      typedArray = Uint32Array;
+    } else if (type === 'float32') {
+      typedArray = Float32Array;
     } else if (type === 'int64') {
       typedArray = BigInt64Array;
     }
@@ -272,9 +314,7 @@ function getFeedInfo(feed, type, data, dims) {
     } else {
       size = dims.reduce((a, b) => a * b);
       if (data === 'random') {
-        _data = typedArray.from({length: size}, () => Math.random());
-      } else if (data === 'ramp') {
-        _data = typedArray.from({length: size}, (_, i) => i);
+        _data = typedArray.from({length: size}, () => getRandom(type));
       } else {
         _data = typedArray.from({length: size}, () => data);
       }
