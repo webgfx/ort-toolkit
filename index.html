@@ -50,6 +50,7 @@
     let artifactData = [];
     let artifactIndex = 0;
     const displayPrecision = 2;
+    let epsilon = 1e-3;
     let feedsInfo = [];
     let modelBuffer;
     let originConsoleLog;
@@ -209,6 +210,11 @@
         runTimes = 2;
       } else if (runTimes === 0) {
         runTimes = 1;
+      }
+
+      // Use a larger tolerance for f16 models as WASM results are more different
+      if (task === "conformance" && modelName.endsWith("-f16")) {
+        epsilon = 0.05;
       }
 
       // run task
@@ -389,7 +395,7 @@
         for (let i = 0; i < data[0].length; i++) {
           _results.push([]);
           for (let j = 0; j < data[0][i].length; j++) {
-            _results[i].push(compare(data[0][i][j], data[1][i][j]));
+            _results[i].push(compare(data[0][i][j], data[1][i][j], epsilon));
           }
           _results[i] = `[${_results[i].join(", ")}]`;
         }

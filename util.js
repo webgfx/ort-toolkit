@@ -85,7 +85,7 @@ function toggleClass(el, className) {
   }
 }
 
-function compare(actual, expected, epsilon = 1e-3) {
+function compare(actual, expected, epsilon = 0) {
   try {
     areCloseObjects(actual, expected, epsilon);
   } catch (e) {
@@ -168,10 +168,12 @@ function areClosePrimitives(actual, expected, epsilon) {
   const error = Math.abs(actual - expected);
   if (Math.abs(actual) >= 1) {
     if ((error > 1e-1) || error / Math.min(Math.abs(actual), Math.abs(expected)) > epsilon) {
+      console.error(`actual=${actual}, expected=${expected}`);
       return false;
     }
   } else {
     if (error > epsilon) {
+      console.error(`actual=${actual}, expected=${expected}`);
       return false;
     }
   }

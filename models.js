@@ -261,6 +261,8 @@ function getRandom(type) {
     min = 0;
     max = 1000;
     return getRandomIntInclusive(min, max);
+    // 1.0 -> 0x3C00
+    //return 0x3C00;
   } else if (type === 'int32') {
     min = -(2 ** 31);
     max = 2 ** 31 - 1;
