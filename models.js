@@ -255,14 +255,16 @@ function getRandom(type) {
     max = 2 ** 7 - 1;
     return getRandomIntInclusive(min, max);
   } else if (type === 'float16') {
-    min = 0;
     // F16 valid bits range: (Positive) 0x0000~0x7BFF (Negative) 0x8000~0xFBFF
     // F16 valid numeric range: -65504~65504
-    min = 0;
-    max = 1000;
-    return getRandomIntInclusive(min, max);
-    // 1.0 -> 0x3C00
-    //return 0x3C00;
+
+    // 1.0 -> 0x3C00. Use this specific value so that results of WebGPU and WASM can be somehow compared.
+    return 0x3C00;
+
+    // min = 0;
+    // max = 1000;
+    // return getRandomIntInclusive(min, max);
+
   } else if (type === 'int32') {
     min = -(2 ** 31);
     max = 2 ** 31 - 1;
