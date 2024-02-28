@@ -85,16 +85,16 @@ function toggleClass(el, className) {
   }
 }
 
-function compare(actual, expected, epsilon = 0) {
+function compare(actual, expected, epsilons) {
   try {
-    areCloseObjects(actual, expected, epsilon);
+    areCloseObjects(actual, expected, epsilons);
   } catch (e) {
     return false;
   }
   return true;
 }
 
-function areCloseObjects(actual, expected, epsilon) {
+function areCloseObjects(actual, expected, epsilons) {
   let actualKeys = Object.getOwnPropertyNames(actual);
   let expectedKeys = Object.getOwnPropertyNames(expected);
   if (actualKeys.length != expectedKeys.length) {
@@ -105,11 +105,11 @@ function areCloseObjects(actual, expected, epsilon) {
     let isArray = isTypedArray(actual[key]) && isTypedArray(expected[key]);
     let isObject = typeof (actual[key]) === 'object' && typeof (expected[key]) === 'object';
     if (isArray) {
-      areCloseArrays(actual[key], expected[key], epsilon);
+      areCloseArrays(actual[key], expected[key], epsilons);
     } else if (isObject) {
-      areCloseObjects(actual[key], expected[key], epsilon);
+      areCloseObjects(actual[key], expected[key], epsilons);
     } else {
-      if (!areClosePrimitives(actual[key], expected[key], epsilon)) {
+      if (!areClosePrimitives(actual[key], expected[key], epsilons)) {
         throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${
             JSON.stringify(expected[key])}!`);
       }
@@ -118,7 +118,7 @@ function areCloseObjects(actual, expected, epsilon) {
   return true;
 }
 
-function areCloseArrays(actual, expected, epsilon) {
+function areCloseArrays(actual, expected, epsilons) {
   let checkClassType = true;
   if (isTypedArray(actual) || isTypedArray(expected)) {
     checkClassType = false;
@@ -149,7 +149,7 @@ function areCloseArrays(actual, expected, epsilon) {
     const a = actualFlat[i];
     const e = expectedFlat[i];
 
-    if (!areClosePrimitives(a, e, epsilon)) {
+    if (!areClosePrimitives(a, e, epsilons)) {
       throw new Error(
           `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
           `Actual:   ${actualFlat}.\n` +
@@ -158,7 +158,7 @@ function areCloseArrays(actual, expected, epsilon) {
   }
 }
 
-function areClosePrimitives(actual, expected, epsilon) {
+function areClosePrimitives(actual, expected, epsilons) {
   if (isNaN(actual) || isNaN(expected)) {
     return false;
   } else if (!isFinite(actual) && !isFinite(expected)) {
@@ -167,12 +167,13 @@ function areClosePrimitives(actual, expected, epsilon) {
 
   const error = Math.abs(actual - expected);
   if (Math.abs(actual) >= 1) {
-    if ((error > 1e-1) || error / Math.min(Math.abs(actual), Math.abs(expected)) > epsilon) {
+    errorRatio = error / Math.min(Math.abs(actual), Math.abs(expected));
+    if ((error > epsilons[0]) || errorRatio > epsilons[1]) {
       console.error(`actual=${actual}, expected=${expected}`);
       return false;
     }
   } else {
-    if (error > epsilon) {
+    if (error > epsilons[1]) {
       console.error(`actual=${actual}, expected=${expected}`);
       return false;
     }

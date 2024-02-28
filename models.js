@@ -236,6 +236,26 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
 };
 
+const modelEpsilons = {
+  'sam-h-decoder-f16': [1, 1], // TODO: Check the conformance
+}
+
+function getEpsilons(modelName) {
+  let epsilons;
+
+  if (modelName.endsWith("-f16")) {
+    epsilons = [0.1, 0.05];
+  } else {
+    epsilons = [0.1, 0.005];
+  }
+
+  if (modelName in modelEpsilons) {
+    epsilons = modelEpsilons[modelName];
+  }
+
+  return epsilons;
+}
+
 function getRandomIntInclusive(min, max) {
   const minCeiled = Math.ceil(min);
   const maxFloored = Math.floor(max);
