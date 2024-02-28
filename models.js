@@ -238,6 +238,7 @@ const models = {
 
 const modelEpsilons = {
   'sam-h-decoder-f16': [1, 1], // TODO: Check the conformance
+  'mt5-small-decoder': [0.1, 0.06],
 }
 
 function getEpsilons(modelName) {

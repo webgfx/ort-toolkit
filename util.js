@@ -89,14 +89,15 @@ function compare(actual, expected, epsilons) {
   try {
     areCloseObjects(actual, expected, epsilons);
   } catch (e) {
+    console.error(e);
     return false;
   }
   return true;
 }
 
 function areCloseObjects(actual, expected, epsilons) {
-  let actualKeys = Object.getOwnPropertyNames(actual);
-  let expectedKeys = Object.getOwnPropertyNames(expected);
+  let actualKeys = Object.keys(actual);
+  let expectedKeys = Object.keys(expected);
   if (actualKeys.length != expectedKeys.length) {
     throw new Error(`Actual length ${actualKeys.length} not equal Expected length ${expectedKeys.length}`);
   }
