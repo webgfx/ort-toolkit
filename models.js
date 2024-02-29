@@ -372,6 +372,12 @@ function getFeedsInfo(modelName) {
   let encSeqLen = 128;
   let batchSize = 1;
   let seqLen = 128;
+  let attentionMaskSeqLen;
+  if (modelName.endsWith('-merged')) {
+    attentionMaskSeqLen = seqLen * 2;
+  } else {
+    attentionMaskSeqLen = seqLen;
+  }
 
   if (['bart-large', 'bart-large-12'].indexOf(inputs) >= 0) {
     const kvDim = modelName === 'bart-large' ? 16 : 12;
@@ -407,8 +413,8 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 'codegen-350m-mono-decoder') {
-    getFeedInfo('attention_mask', 'int64', 1n, [1, 8]);
-    getFeedInfo('input_ids', 'int64', 99n, [1, 8]);
+    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, 8]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, 8]);
     getPastKeyValuesInfo([batchSize, 16, seqLen, 64]);
   }
 
@@ -423,7 +429,7 @@ function getFeedsInfo(modelName) {
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
-    getPastKeyValuesInfo([1, 16, seqLen, 64]);
+    getPastKeyValuesInfo([1, 16, decSeqLen, 64]);
   }
 
   if (inputs === 'img224') {
@@ -441,12 +447,18 @@ function getFeedsInfo(modelName) {
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2-decoder') {
       seqLen = 8;
-    } else if (['distilgpt2-decoder', 'distilgpt2-decoder-merged'].indexOf(modelName) >= 0) {
+    } else if (modelName.startsWith('distilgpt2-decoder')) {
       seqLen = 16;
     }
 
+    if (modelName.endsWith('-merged')) {
+      attentionMaskSeqLen = seqLen * 2;
+    } else {
+      attentionMaskSeqLen = seqLen;
+    }
+
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, seqLen]);
-    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
+    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, attentionMaskSeqLen]);
     getPastKeyValuesInfo([batchSize, 12, seqLen, 64]);
   }
 
@@ -528,7 +540,7 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, attentionMaskSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 512]);
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
     const dims = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
