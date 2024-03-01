@@ -566,9 +566,13 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 'whisper-decoder') {
+    if (!modelName.endsWith('-merged')) {
+      decSeqLen = 1;
+      encSeqLen = 3000;
+    }
     getFeedInfo('input_ids', 'int64', 1n, [batchSize, decSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen / 2, 384]);
-    getPastKeyValuesInfo([batchSize, 6, decSeqLen / 2, 64]);
+    getPastKeyValuesInfo([batchSize, 6, encSeqLen / 2, 64]);
   }
 
   getFeedInfo('use_cache_branch', 'bool', true);
