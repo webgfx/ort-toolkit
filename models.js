@@ -413,8 +413,14 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 'codegen-350m-mono-decoder') {
-    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, 8]);
-    getFeedInfo('input_ids', 'int64', 99n, [batchSize, 8]);
+    seqLen = 8;
+    if (modelName.endsWith('-merged')) {
+      attentionMaskSeqLen = seqLen * 2;
+    } else {
+      attentionMaskSeqLen = seqLen;
+    }
+    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, attentionMaskSeqLen]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, seqLen]);
     getPastKeyValuesInfo([batchSize, 16, seqLen, 64]);
   }
 
@@ -540,7 +546,8 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 't5-decoder' || inputs === 'mt5-decoder' || inputs === 'flan-t5-decoder') {
-    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, attentionMaskSeqLen]);
+    // For encoder_attention_mask, it's encoder_sequence_length
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 512]);
     getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
     const dims = inputs === 't5-decoder' ? [batchSize, 8, decSeqLen, 64] : [batchSize, 6, decSeqLen, 64];
@@ -559,9 +566,9 @@ function getFeedsInfo(modelName) {
   }
 
   if (inputs === 'whisper-decoder') {
-    getFeedInfo('input_ids', 'int64', 1n, [1, 1]);
-    getFeedInfo('encoder_hidden_states', 'float32', 'random', [1, 1500, 384]);
-    getPastKeyValuesInfo([1, 6, 1500, 64]);
+    getFeedInfo('input_ids', 'int64', 1n, [batchSize, decSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen / 2, 384]);
+    getPastKeyValuesInfo([batchSize, 6, decSeqLen / 2, 64]);
   }
 
   getFeedInfo('use_cache_branch', 'bool', true);
