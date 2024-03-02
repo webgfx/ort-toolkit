@@ -227,8 +227,9 @@ const models = {
 };
 
 const modelEpsilons = {
-  'sam-h-decoder-f16': [1, 1], // TODO: Check the conformance
+  'mobilenetv2-12-f16': [0.13, 0.09], // extra tolerance for NV4090
   'mt5-small-decoder': [0.1, 0.06],
+  'sam-h-decoder-f16': [1, 1], // TODO: Check the conformance
   'sd21-vae-encoder': [0.1, 0.06],
 }
 
