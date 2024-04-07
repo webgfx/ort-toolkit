@@ -101,6 +101,9 @@ const models = {
     { 'batch_size': 1, 'encoder_sequence_length': 128 }
   ],
 
+  // https://huggingface.co/schmuell/phi2-int4/blob/main/onnx/decoder_model_merged.onnx
+  'phi2-decoder-merged-f16': ['phi2-decoder-merged-f16'],
+
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
   'realesrgan-t512': 'realesrgan',
@@ -159,6 +162,9 @@ const models = {
   't5-small-decoder-merged': 't5-decoder',
   // tjs/t5-small/onnx/encoder_model.onnx
   't5-small-encoder': ['t5-encoder', { batch: 1, sequence: 128 }],
+
+  // https://huggingface.co/schmuell/TinyLlama-1.1B-Chat-v1.0-int4/blob/main/onnx/decoder_model_merged.onnx
+  'tinyllama-decoder-merged-f16': ['tinyllama-decoder-merged-f16'],
 
   // webnn
   'tinyyolov2-8': [{ image: ['float32', 'random', [1, 3, 416, 416]] }, { None: 1 }],
@@ -475,6 +481,18 @@ function getFeedsInfo(modelName) {
     getFeedInfo(inputNames[0], 'float32', 'random', [1, 224, 224, 3]);
   }
 
+  if (inputs == 'phi2-decoder-merged-f16') {
+    const tokens = [24446n, 502n, 546n, 262n, 46371n, 286n, 27872n];
+    getFeedInfo('input_ids', 'int64', new BigInt64Array(tokens), [1, tokens.length]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
+    getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
+    const decoder_shape = [1, 32, 0, 80];
+    for (var i = 0; i < 32; i++) {
+      getFeedInfo('past_key_values.' + i + '.key', 'float16', 1, decoder_shape);
+      getFeedInfo('past_key_values.' + i + '.value', 'float16', 1, decoder_shape);
+    }
+  }
+
   if (inputs === 'realesrgan') {
     const modelInfo = modelName.split('-');
     const tileSize = parseInt(modelInfo[1].replace('t', ''));
@@ -553,6 +571,22 @@ function getFeedsInfo(modelName) {
 
   if (inputs === 't5-encoder') {
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
+  }
+
+  if (inputs === 'tinyllama-decoder-merged-f16') {
+    const decoder_shape = [1, 4, 0, 64];
+    const tokens = [529n, 29989n, 5205n, 29989n, 29958n, 13n, 3492n, 526n, 263n, 19780n, 20255n, 29889n, 2n, 13n, 29966n,
+      29989n, 1792n, 29989n, 29958n, 13n, 29911n, 514n, 592n, 1048n, 23194n, 1991n, 29889n, 2n, 13n, 29966n, 29989n,
+      465n, 22137n, 29989n, 29958n, 13n];
+    getFeedInfo('input_ids', 'int64', new BigInt64Array(tokens), [1, tokens.length]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
+    getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
+    for (var k in inputNames) {
+      const v = inputNames[k];
+      if (v.startsWith("past_key_values.")) {
+        getFeedInfo(v, 'float16', 1, decoder_shape);
+      }
+    }
   }
 
   if (inputs === 'vit-gpt2-image-captioning-decoder') {

@@ -176,11 +176,11 @@
       let modelFolder = getModelFolderInfo(modelName);
 
       if (modelUrl === "hf") {
-        modelUrl = `https://huggingface.co/onnxruntime/models/resolve/main/${modelFolder}${modelName}.onnx`;
+        modelUrl = `https://huggingface.co/webai-community/models/resolve/main/${modelFolder}${modelName}.onnx`;
       } else if (modelUrl === "server") {
-        modelUrl = `${window.location.origin}/${window.location.pathname}ort-models/${modelFolder}${modelName}.onnx`;
+        modelUrl = `${window.location.origin}/${window.location.pathname}/models/${modelFolder}${modelName}.onnx`;
       } else if (modelUrl === "wp-27") {
-        modelUrl = `https://wp-27.sh.intel.com/workspace/project/ort-models/${modelFolder}${modelName}.onnx`;
+        modelUrl = `https://wp-27.sh.intel.com/workspace/project/models/${modelFolder}${modelName}.onnx`;
       }
 
       if (updateModel) {
