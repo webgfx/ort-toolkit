@@ -114,7 +114,7 @@
       let urls = [];
       let ortFiles;
 
-      if (enableTrace || enableDebug) {
+      if (enableDebug) {
         ortFiles = ["ort.all.js"];
       } else {
         ortFiles = ["ort.all.min.js"];
@@ -170,7 +170,7 @@
       }
 
       if (enableTrace) {
-        ort.env.wasm.trace = true;
+        ort.env.trace = true;
       }
 
       let modelFolder = getModelFolderInfo(modelName);
@@ -178,7 +178,7 @@
       if (modelUrl === "hf") {
         modelUrl = `https://huggingface.co/webai-community/models/resolve/main/${modelFolder}${modelName}.onnx`;
       } else if (modelUrl === "server") {
-        modelUrl = `${window.location.origin}/${window.location.pathname}/models/${modelFolder}${modelName}.onnx`;
+        modelUrl = `${window.location.origin}${window.location.pathname}models/${modelFolder}${modelName}.onnx`;
       } else if (modelUrl === "wp-27") {
         modelUrl = `https://wp-27.sh.intel.com/workspace/project/models/${modelFolder}${modelName}.onnx`;
       }

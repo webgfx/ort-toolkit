@@ -119,6 +119,11 @@ const models = {
   // webnn
   'resnet50-v2-7': ['img224', { N: 1 }],
 
+  'safety-checker': [
+    { 'clip_input': ['float16', 'random', [1, 3, 224, 224]], 'images': ['float16', 'random', [1, 224, 224, 3]] },
+    { 'batch': 1, 'channels': 3, 'height': 224, 'width': 224 }
+  ],
+
   /*
       https://github.com/vietanhdev/samexporter
       python -m samexporter.export_decoder --checkpoint models/sam_vit_b_01ec64.pth --output models/sam-b-decoder.onnx
