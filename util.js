@@ -1,21 +1,28 @@
 
 // Get model via Origin Private File System
-async function getModelOPFS(name, url, updateModel) {
-  const root = await navigator.storage.getDirectory();
-  let fileHandle;
-
-  async function updateFile() {
+async function getOPFS(name, url, updateModel) {
+  async function updateFile(needCache) {
     const response = await fetch(url);
     const buffer = await readResponse(response);
-    fileHandle = await root.getFileHandle(name, {create: true});
+    if (!needCache) {
+      return buffer;
+    }
+    fileHandle = await root.getFileHandle(name, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(buffer);
     await writable.close();
     return buffer;
   }
 
+  if (!navigator.storage) {
+    return await updateFile(needCache = false);
+  }
+
+  const root = await navigator.storage.getDirectory();
+  let fileHandle;
+
   if (updateModel) {
-    return await updateFile();
+    return await updateFile(needCache = true);
   }
 
   try {
@@ -23,12 +30,12 @@ async function getModelOPFS(name, url, updateModel) {
     const blob = await fileHandle.getFile();
     return await blob.arrayBuffer();
   } catch (e) {
-    return await updateFile();
+    return await updateFile(needCache = true);
   }
 }
 
 // Get model via Cache API
-async function getModelCache(name, url, updateModel) {
+async function getCache(name, url, updateModel) {
   const cache = await caches.open(name);
   if (updateModel) {
     await cache.add(url);
@@ -50,7 +57,7 @@ async function readResponse(response) {
 
   const reader = response.body.getReader();
   async function read() {
-    const {done, value} = await reader.read();
+    const { done, value } = await reader.read();
     if (done) return;
 
     let newLoaded = loaded + value.length;
@@ -74,7 +81,7 @@ function reportStatus(status) {
 }
 
 function getSum(data) {
-  return data.reduce((accumulator, currentValue) => {return accumulator + currentValue}, 0);
+  return data.reduce((accumulator, currentValue) => { return accumulator + currentValue }, 0);
 }
 
 function toggleClass(el, className) {
@@ -111,8 +118,7 @@ function areCloseObjects(actual, expected, epsilons) {
       areCloseObjects(actual[key], expected[key], epsilons);
     } else {
       if (!areClosePrimitives(actual[key], expected[key], epsilons)) {
-        throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${
-            JSON.stringify(expected[key])}!`);
+        throw new Error(`Objects differ: actual[${key}] = ${JSON.stringify(actual[key])}, expected[${key}] = ${JSON.stringify(expected[key])}!`);
       }
     }
   }
@@ -141,10 +147,10 @@ function areCloseArrays(actual, expected, epsilons) {
 
   if (actualFlat.length !== expectedFlat.length) {
     throw new Error(
-        `Arrays have different lengths actual: ${actualFlat.length} vs ` +
-        `expected: ${expectedFlat.length}.\n` +
-        `Actual:   ${actualFlat}.\n` +
-        `Expected: ${expectedFlat}.`);
+      `Arrays have different lengths actual: ${actualFlat.length} vs ` +
+      `expected: ${expectedFlat.length}.\n` +
+      `Actual:   ${actualFlat}.\n` +
+      `Expected: ${expectedFlat}.`);
   }
   for (let i = 0; i < expectedFlat.length; ++i) {
     const a = actualFlat[i];
@@ -152,9 +158,9 @@ function areCloseArrays(actual, expected, epsilons) {
 
     if (!areClosePrimitives(a, e, epsilons)) {
       throw new Error(
-          `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
-          `Actual:   ${actualFlat}.\n` +
-          `Expected: ${expectedFlat}.`);
+        `Arrays differ: actual[${i}] = ${a}, expected[${i}] = ${e}.\n` +
+        `Actual:   ${actualFlat}.\n` +
+        `Expected: ${expectedFlat}.`);
     }
   }
 }

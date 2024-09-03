@@ -68,6 +68,7 @@ const models = {
   'm2m100-encoder': ['m2m100-encoder', { batch_size: 1, encoder_sequence_length: 128 }],
   // from teams
   'mobilenetv2-12': ['img224', { batch_size: 1 }],
+  'mobilenetv2-12-ext': ['img224'],
   // https://huggingface.co/webml/models/tree/main
   // not sure if its really 12
   'mobilenetv2-12-f16': 'img224-f16',
@@ -103,6 +104,8 @@ const models = {
 
   // https://huggingface.co/schmuell/phi2-int4/blob/main/onnx/decoder_model_merged.onnx
   'phi2-decoder-merged-f16': ['phi2-decoder-merged-f16'],
+
+  'phi3-int4': ['phi3-int4'],
 
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
@@ -209,7 +212,8 @@ const models = {
   // TODO
   // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx
   // RuntimeError: Aborted()
-  'm2m100-decoder': 'm2m100-decoder',
+  'm2m100-decoder-merged': 'm2m100-decoder-merged',
+  'm2m100-decoder-merged-new': 'm2m100-decoder-merged',
 
   // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN.
   // The rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
@@ -235,6 +239,8 @@ const models = {
 
   // Temp
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
+  'rtmpose-m-orig': { 'input': ['float32', 'random', [1, 3, 256, 192]] },
+  'wav2vec2': 'wav2vec2',
 };
 
 const modelEpsilons = {
@@ -470,7 +476,7 @@ function getFeedsInfo(modelName) {
     getPastKeyValuesInfo([batchSize, 12, seqLen, 64]);
   }
 
-  if (inputs === 'm2m100-decoder') {
+  if (inputs === 'm2m100-decoder-merged') {
     getFeedInfo('encoder_attention_mask', 'int64', 1n, [1, encSeqLen]);
     getFeedInfo('input_ids', 'int64', 99n, [1, decSeqLen]);
     getFeedInfo('encoder_hidden_states', 'float32', 1, [1, encSeqLen, 1024]);
@@ -498,15 +504,23 @@ function getFeedsInfo(modelName) {
     }
   }
 
+  if (inputs == 'phi3-int4') {
+    const tokens = [24446n, 502n, 546n, 262n, 46371n, 286n, 27872n];
+    getFeedInfo('input_ids', 'int64', new BigInt64Array(tokens), [1, tokens.length]);
+    getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
+    getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
+    const decoder_shape = [1, 32, 0, 96];
+    for (var i = 0; i < 32; i++) {
+      getFeedInfo('past_key_values.' + i + '.key', 'float16', 1, decoder_shape);
+      getFeedInfo('past_key_values.' + i + '.value', 'float16', 1, decoder_shape);
+    }
+  }
+
   if (inputs === 'realesrgan') {
     const modelInfo = modelName.split('-');
     const tileSize = parseInt(modelInfo[1].replace('t', ''));
     const dataType = modelName.endsWith('f16') ? '16' : '32';
     getFeedInfo(`in_image_float${dataType}_rgb01`, `float${dataType}`, 'random', [1, 3, tileSize, tileSize]);
-  }
-
-  if (inputs === 'sam-b-vision-encoder') {
-    getFeedInfo('pixel_values', 'float32', 'random', [1, 3, 1024, 1024]);
   }
 
   if (inputs === 'sam-decoder') {
@@ -616,6 +630,17 @@ function getFeedsInfo(modelName) {
     getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
   }
 
+  // tmp start
+  if (inputs === 'sam-b-vision-encoder') {
+    getFeedInfo('pixel_values', 'float32', 'random', [1, 3, 1024, 1024]);
+  }
+
+  if (inputs === 'wav2vec2') {
+    getFeedInfo('input', 'float32', 'random', [1, 160800]);
+  }
+
+  // tmp end
+
   getFeedInfo('use_cache_branch', 'bool', true);
 
   if (isDict(inputs)) {
@@ -683,8 +708,10 @@ function getModelFolderInfo(modelName) {
   modelFolder = '';
   if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
     modelFolder = 'private/';
-  } else if (['sam-b-vision-encoder'].indexOf(modelName) >= 0) {
+  } else if (['sam-b-vision-encoder', 'wav2vec2'].indexOf(modelName) >= 0) {
     modelFolder = 'tmp/';
+  } else if (['phi3-int4'].indexOf(modelName) >= 0) {
+    modelFolder = `${modelName}/`;
   }
   return modelFolder;
 }
