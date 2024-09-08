@@ -64,6 +64,9 @@ const models = {
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 16, sequence_length: 8}
   'gpt2-decoder-merged': 'llm-decoder',
+  // https://huggingface.co/Xenova/mbart-large-50-many-to-many-mmt/resolve/main/onnx/decoder_model_merged.onnx
+  'mbart-large-decoder-merged-ext': 'mbart-large-decoder-merged',
+  'mbart-large-decoder-merged-f16': 'mbart-large-decoder-merged-f16',
   // https://huggingface.co/Xenova/m2m100_418M/resolve/main/onnx/encoder_model.onnx
   'm2m100-encoder': ['m2m100-encoder', { batch_size: 1, encoder_sequence_length: 128 }],
   // from teams
@@ -213,7 +216,7 @@ const models = {
   // https://huggingface.co/Xenova/m2m100/resolve/main/onnx/decoder_model_merged.onnx
   // RuntimeError: Aborted()
   'm2m100-decoder-merged': 'm2m100-decoder-merged',
-  'm2m100-decoder-merged-new': 'm2m100-decoder-merged',
+  'm2m100-decoder-merged-ext': 'm2m100-decoder-merged',
 
   // sd-unet: Stable-Diffusion-v1.5-unet-fixed-size-batch-1-float16-no-shape-ops-embedded-weights from WebNN.
   // The rests: http://powerbuilder.sh.intel.com/project/webnn/model/w3c/stable-diffusion-v1-5/
@@ -241,6 +244,11 @@ const models = {
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
   'rtmpose-m-orig': { 'input': ['float32', 'random', [1, 3, 256, 192]] },
   'wav2vec2': 'wav2vec2',
+  'vits': [{
+    'input': ['int64', 'random', [1, 201]],
+    'input_lengths': ['int64', 1n, [1]],
+    'scales': ['float32', [0.667, 1, 0.8], [3]],
+  }],
 };
 
 const modelEpsilons = {
@@ -264,6 +272,21 @@ function getEpsilons(modelName) {
   }
 
   return epsilons;
+}
+
+function getRandomBigInt(numBits) {
+  let randomBytes = new Uint8Array(Math.ceil(numBits / 8));
+  crypto.getRandomValues(randomBytes);
+
+  let result = 0n;
+  for (let i = 0; i < randomBytes.length; i++) {
+    result = (result << 8n) | BigInt(randomBytes[i]);
+  }
+
+  // Ensure the result has the correct number of bits
+  result = result % (2n ** BigInt(numBits));
+
+  return result;
 }
 
 function getRandomIntInclusive(min, max) {
@@ -306,9 +329,7 @@ function getRandom(type) {
   } else if (type === 'float32') {
     return Math.random() * 10;
   } else if (type === 'int64') {
-    min = -(2 ** 63);
-    max = 2 ** 63 - 1;
-    return getRandomIntInclusive(min, max);
+    return getRandomBigInt(64);
   }
 }
 
@@ -363,7 +384,7 @@ function getFeedInfo(feed, type, data, dims) {
 
 // depend on global variables: session
 function getPastKeyValuesInfo(dims) {
-  for (var inputName of session.inputNames) {
+  for (let inputName of session.inputNames) {
     if (inputName.startsWith('past_key_values.')) {
       getFeedInfo(inputName, 'float32', 1, dims);
     }
@@ -488,6 +509,30 @@ function getFeedsInfo(modelName) {
     getFeedInfo('attention_mask', 'int64', 1n, [1, encSeqLen]);
   }
 
+  if (inputs === 'mbart-large-decoder-merged') {
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 1024]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
+    for (let i = 0; i < 12; i++) {
+      for (type of ['encoder', 'decoder']) {
+        getFeedInfo(`past_key_values.${i}${type}.key`, 'float16', 1, decoder_shape);
+        getFeedInfo(`past_key_values.${i}${type}.value`, 'float16', 1, decoder_shape);
+      }
+    }
+  }
+
+  if (inputs === 'mbart-large-decoder-merged-f16') {
+    getFeedInfo('encoder_attention_mask', 'int64', 1n, [batchSize, encSeqLen]);
+    getFeedInfo('encoder_hidden_states', 'float32', 'random', [batchSize, encSeqLen, 1024]);
+    getFeedInfo('input_ids', 'int64', 99n, [batchSize, decSeqLen]);
+    for (let i = 0; i < 12; i++) {
+      for (type of ['encoder', 'decoder']) {
+        getFeedInfo(`past_key_values.${i}${type}.key`, 'float16', 1, decoder_shape);
+        getFeedInfo(`past_key_values.${i}${type}.value`, 'float16', 1, decoder_shape);
+      }
+    }
+  }
+
   if (inputs === 'mobilenetv3') {
     getFeedInfo(inputNames[0], 'float32', 'random', [1, 224, 224, 3]);
   }
@@ -498,9 +543,9 @@ function getFeedsInfo(modelName) {
     getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
     getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
     const decoder_shape = [1, 32, 0, 80];
-    for (var i = 0; i < 32; i++) {
-      getFeedInfo('past_key_values.' + i + '.key', 'float16', 1, decoder_shape);
-      getFeedInfo('past_key_values.' + i + '.value', 'float16', 1, decoder_shape);
+    for (let i = 0; i < 32; i++) {
+      getFeedInfo(`past_key_values.${i}.key`, 'float16', 1, decoder_shape);
+      getFeedInfo(`past_key_values.${i}.value`, 'float16', 1, decoder_shape);
     }
   }
 
@@ -510,9 +555,9 @@ function getFeedsInfo(modelName) {
     getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
     getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
     const decoder_shape = [1, 32, 0, 96];
-    for (var i = 0; i < 32; i++) {
-      getFeedInfo('past_key_values.' + i + '.key', 'float16', 1, decoder_shape);
-      getFeedInfo('past_key_values.' + i + '.value', 'float16', 1, decoder_shape);
+    for (let i = 0; i < 32; i++) {
+      getFeedInfo(`past_key_values.${i}.key`, 'float16', 1, decoder_shape);
+      getFeedInfo(`past_key_values.${i}.value`, 'float16', 1, decoder_shape);
     }
   }
 
@@ -600,7 +645,7 @@ function getFeedsInfo(modelName) {
     getFeedInfo('input_ids', 'int64', new BigInt64Array(tokens), [1, tokens.length]);
     getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
     getFeedInfo('position_ids', 'int64', 0n, [1, tokens.length]);
-    for (var k in inputNames) {
+    for (let k in inputNames) {
       const v = inputNames[k];
       if (v.startsWith("past_key_values.")) {
         getFeedInfo(v, 'float16', 1, decoder_shape);
@@ -708,7 +753,7 @@ function getModelFolderInfo(modelName) {
   modelFolder = '';
   if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
     modelFolder = 'private/';
-  } else if (['sam-b-vision-encoder', 'wav2vec2'].indexOf(modelName) >= 0) {
+  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits'].indexOf(modelName) >= 0) {
     modelFolder = 'tmp/';
   } else if (['phi3-int4'].indexOf(modelName) >= 0) {
     modelFolder = `${modelName}/`;

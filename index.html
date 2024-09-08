@@ -17,17 +17,23 @@
 
     // url parameters
     let deviceType = getParam("deviceType", "String", "default");
-    // ep can be webgpu, wasm, webnn
-    const ep = getParam("ep", "String", "webgpu");
+
+    // disableXxx
     const disableBuffer = getParam("disableBuffer", "Boolean", false);
     let disableReadback = getParam("disableReadback", "Boolean", "default");
+
+    // enableXxx
     const enableDebug = getParam("enableDebug", "Boolean", false);
+    const enableExternalData = getParam("enableExternalData", "Boolean", false);
     const enableFreeDimensionOverrides = getParam("enableFreeDimensionOverrides", "Boolean", true);
     let enableGraphCapture = getParam("enableGraphCapture", "Boolean", "default");
     let enableIoBinding = getParam("enableIoBinding", "Boolean", false);
+    const enableModelUpdate = getParam("enableModelUpdate", "Boolean", false);
     const enableTrace = getParam("enableTrace", "Boolean", false);
     const enableVerbose = getParam("enableVerbose", "Boolean", false);
-    const externalData = getParam("externalData", "Boolean", false);
+
+    // ep can be webgpu, wasm, webnn
+    const ep = getParam("ep", "String", "webgpu");
     const externalDataPath = getParam("externalDataPath", "String", "");
     // 'verbose', 'info', 'warning', 'error', 'fatal'
     const logLevel = getParam("logLevel", "String", "warning");
@@ -43,7 +49,6 @@
     const ortVersion = getParam("ortVersion", "String", "dev");
     let runTimes = getParam("runTimes", "Number", 0);
     const task = getParam("task", "String", "performance");
-    const updateModel = getParam("updateModel", "Boolean", false);
     let warmupTimes = getParam("warmupTimes", "Number", 0);
     const wasmThreads = getParam("wasmThreads", "Number", 4);
     const webgpuLayout = getParam("webgpuLayout", "String", "NHWC");
@@ -466,7 +471,7 @@
         logVerbosityLevel: logVerbosityLevel,
       };
 
-      if (updateModel) {
+      if (enableModelUpdate) {
         modelBuffer = await getOPFS(`${modelName}.onnx`, modelUrl, true);
       } else {
         modelBuffer = await getOPFS(`${modelName}.onnx`, modelUrl, false);
@@ -475,7 +480,7 @@
         }
       }
 
-      if (externalData) {
+      if (enableExternalData) {
         let data, path;
 
         let dataUrl = modelUrl.replace('.onnx', '.data');
