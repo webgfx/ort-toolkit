@@ -191,8 +191,8 @@
         modelUrl = `https://wp-27.sh.intel.com/workspace/project/models/${modelFolder}${modelName}.onnx`;
       }
 
-      ort.env.wasm.numThreads = wasmThreads;
-      ort.env.wasm.simd = true;
+      ort.env.wasm.numThreads = wasmThreads; // By default, it's "min(4, ceil(cpu_core_num / 2))"
+      //ort.env.wasm.simd = true; // It's true by default
 
       if (logLevel) {
         ort.env.logLevel = logLevel;

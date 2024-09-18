@@ -18,6 +18,10 @@ const models = {
   // https://huggingface.co/Xenova/codegen-350M-mono/tree/main/onnx
   'codegen-350m-mono-decoder': ['codegen-350m-mono-decoder', { 'batch_size': 1, 'sequence_length': 8 }],
   'codegen-350m-mono-decoder-merged': 'codegen-350m-mono-decoder',
+  'demucs': {
+    'mix': ['float32', 'random', [1, 2, 441000]],
+    'spec': ['float32', 'random', [1, 2, 2048, 431, 2]],
+  },
   // webnn
   'densenet-9': 'img224',
   // tjs/facebook/detr-resnet-50/onnx/model.onnx. TODO: conformance fails
@@ -240,15 +244,18 @@ const models = {
   // https://huggingface.co/aislamov/stable-diffusion-2-1-base-onnx/tree/9f697c96d42e5c09437ff14b0a2b287366ce488d/vae_decoder
   'sd-vae-decoder-arthur': 'sd-vae-decoder',
 
-  // Temp
+  // tmp models
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
   'rtmpose-m-orig': { 'input': ['float32', 'random', [1, 3, 256, 192]] },
   'wav2vec2': 'wav2vec2',
-  'vits': [{
+  'vits': {
     'input': ['int64', 'random', [1, 201]],
     'input_lengths': ['int64', 1n, [1]],
     'scales': ['float32', [0.667, 1, 0.8], [3]],
-  }],
+  },
+  'distilbert': { 'input_ids': ['int64', 1n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]] },
+  'clip': { 'pixel_values': ['float32', 'random', [1, 3, 224, 224]] },
+  'yolov8': { 'images': ['float32', 'random', [1, 3, 224, 224]] },
 };
 
 const modelEpsilons = {
@@ -753,7 +760,7 @@ function getModelFolderInfo(modelName) {
   modelFolder = '';
   if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
     modelFolder = 'private/';
-  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits'].indexOf(modelName) >= 0) {
+  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits', 'distilbert', 'clip', 'yolov8'].indexOf(modelName) >= 0) {
     modelFolder = 'tmp/';
   } else if (['phi3-int4'].indexOf(modelName) >= 0) {
     modelFolder = `${modelName}/`;
