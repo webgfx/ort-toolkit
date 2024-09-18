@@ -433,7 +433,6 @@
       }
     }
 
-    // For ortProfiling, session.endProfiling will dump results of all runs, so we couldn't have a session run multiple times.
     // For webgpuProfiling, layout conversion is done in first run, so we need to collect data of second run.
     async function runTask(taskEp) {
       let sessionStartTime = performance.now();
@@ -455,8 +454,8 @@
       }
 
       const getModelStartTime = performance.now();
-      const elapsedTime = parseFloat((performance.now() - getModelStartTime).toFixed(2));
-      console.info(`${elapsedTime}ms was used to get model`);
+      const elapsedTimeModel = parseFloat((performance.now() - getModelStartTime).toFixed(2));
+      console.info(`${elapsedTimeModel}ms was used to get model`);
 
       // set sessionOptions
       const sessionOptions = {
@@ -523,13 +522,20 @@
         sessionOptions.freeDimensionOverrides = getFreeDimensionOverrides(modelName);
       }
 
-      // create session
-      if (task != "ortProfiling") {
-        const sessionCreateStartTime = performance.now();
-        await createSession(sessionOptions);
-        const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
-        console.info(`${elapsedTime}ms was used to create session`);
+      if (task === "ortProfiling") {
+        sessionOptions.enableProfiling = true;
       }
+
+      // create session
+      const sessionCreateStartTime = performance.now();
+      await createSession(sessionOptions);
+      const elapsedTimeSession = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
+      console.info(`${elapsedTimeSession}ms was used to create session`);
+
+      const runOptions = {
+        logSeverityLevel: logSeverityLevel,
+        logVerbosityLevel: logVerbosityLevel,
+      };
 
       // run a task
       for (let i = 0; i < warmupTimes + runTimes; i++) {
@@ -540,25 +546,10 @@
           sessionStartTime = performance.now();
         }
         reportStatus(`Running task ${task} ${i} ...`);
-        if (/* i === warmupTimes && */ task === "ortProfiling") {
-          sessionOptions.enableProfiling = true;
-        }
 
         if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
           ort.env.webgpu.profiling = { mode: "default" };
         }
-
-        if (task === "ortProfiling") {
-          const sessionCreateStartTime = performance.now();
-          await createSession(sessionOptions);
-          const elapsedTime = parseFloat((performance.now() - sessionCreateStartTime).toFixed(2));
-          console.info(`${elapsedTime}ms was used to create session`);
-        }
-
-        const runOptions = {
-          logSeverityLevel: logSeverityLevel,
-          logVerbosityLevel: logVerbosityLevel,
-        };
 
         for (const [feed, [type, data, dims, bufferSize]] of feedsInfo[i]) {
           if (taskEp === "webgpu" && enableIoBinding) {
@@ -608,12 +599,6 @@
         }
         sessionStartTime = null;
 
-        if (/* i === warmupTimes && */ task === "ortProfiling") {
-          session.endProfiling();
-          session.release();
-          break;
-        }
-
         if ((i === warmupTimes + 1 || runTimes == 1) && task === "webgpuProfiling") {
           ort.env.webgpu.profiling = { mode: "" };
           break;
@@ -621,9 +606,7 @@
       }
 
       // release session
-      if (task != "ortProfiling") {
-        session.release();
-      }
+      session.release();
 
       // restore console.log
       if (task.includes("Profiling")) {
