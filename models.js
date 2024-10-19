@@ -68,6 +68,9 @@ const models = {
   // https://huggingface.co/gpt2/blob/main/onnx/decoder_model_merged.onnx. TODO: freeDimensionOverrides
   // {attention_mask_sequence_length: 16, batch_size: 1, past_sequence_length: 16, sequence_length: 8}
   'gpt2-decoder-merged': 'llm-decoder',
+
+  'llama32': 'llama32',
+
   // https://huggingface.co/Xenova/mbart-large-50-many-to-many-mmt/resolve/main/onnx/decoder_model_merged.onnx
   'mbart-large-decoder-merged-ext': 'mbart-large-decoder-merged',
   'mbart-large-decoder-merged-f16': 'mbart-large-decoder-merged-f16',
@@ -152,6 +155,9 @@ const models = {
   'sam-b-encoder': ['sam-encoder', { image_height: 224, image_width: 224 }],
   // https://huggingface.co/webml/models/blob/main/fp16/segment-anything-vit-h-static-shapes-origin-im-size-initializer-optimized-float16.onnx
   'sam-h-decoder-f16': 'sam-decoder-f16',
+
+  'sam2-large-decoder': ['sam2-large-decoder'],
+  'sam2-large-encoder': [{ 'images': ['float32', 'random', [1, 3, 1024, 1024]] }],
 
   'sd15-vae-decoder': ['sd-vae-decoder', { batch: 1, channels: 4, height: 64, width: 64 }],
   'sd15-vae-encoder': ['sd-vae-encoder', { batch: 1, channels: 3, height: 512, width: 512 }],
@@ -245,6 +251,7 @@ const models = {
   'sd-vae-decoder-arthur': 'sd-vae-decoder',
 
   // tmp models
+  'deformable-detr': { 'input': ['float32', 'random', [1, 3, 750, 1333]] },
   'sam-b-vision-encoder': 'sam-b-vision-encoder',
   'rtmpose-m-orig': { 'input': ['float32', 'random', [1, 3, 256, 192]] },
   'wav2vec2': 'wav2vec2',
@@ -486,6 +493,17 @@ function getFeedsInfo(modelName) {
     getFeedInfo(inputNames[0], 'int8', 'random', [1, 3, 224, 224]);
   }
 
+  if (inputs === 'llama32') {
+    getFeedInfo('input_ids', 'int64', 1n, [batchSize, seqLen]);
+    getFeedInfo('attention_mask', 'int64', 1n, [batchSize, seqLen]);
+    getFeedInfo('position_ids', 'int64', 1n, [batchSize, seqLen]);
+
+    for (let i = 0; i <= 15; i++) {
+      getFeedInfo(`past_key_values.${i}.key`, 'float16', 1, [batchSize, 8, seqLen, 64]);
+      getFeedInfo(`past_key_values.${i}.value`, 'float16', 1, [batchSize, 8, seqLen, 64]);
+    }
+  }
+
   if (inputs === 'llm-decoder') {
     if (modelName === 'gpt2-decoder') {
       seqLen = 8;
@@ -595,6 +613,19 @@ function getFeedsInfo(modelName) {
 
   if (inputs === 'sam-encoder') {
     getFeedInfo('input_image', 'float32', 1, [224, 224, 3]);
+  }
+
+  if (inputs === 'sam2-large-decoder') {
+    const num_labels = 1;
+    const num_points = 10;
+    getFeedInfo('image_features_0', 'float32', 'random', [1, 32, 256, 256]);
+    getFeedInfo('image_features_1', 'float32', 'random', [1, 64, 128, 128]);
+    getFeedInfo('image_embeddings', 'float32', 'random', [1, 256, 64, 64]);
+    getFeedInfo('point_coords', 'float32', 'random', [num_labels, num_points, 2]);
+    getFeedInfo('point_labels', 'int32', 'random', [num_labels, num_points]);
+    getFeedInfo('input_masks', 'float32', 'random', [num_labels, 1, 256, 256]);
+    getFeedInfo('has_input_masks', 'float32', 'random', [num_labels]);
+    getFeedInfo('original_image_size', 'int32', 'random', [2]);
   }
 
   if (inputs === 'sd-text-encoder') {
@@ -749,6 +780,7 @@ function getGraphCaptureInfo(modelName) {
     'vit-base-patch16-224',
     'vit-gpt2-image-captioning-encoder',
     'whisper-tiny-encoder',
+    //'whisper-tiny-decoder'
   ].indexOf(modelName) >= 0) {
     return true;
   } else {
@@ -760,7 +792,7 @@ function getModelFolderInfo(modelName) {
   modelFolder = '';
   if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
     modelFolder = 'private/';
-  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits', 'distilbert', 'clip', 'yolov8'].indexOf(modelName) >= 0) {
+  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits', 'distilbert', 'clip', 'yolov8', 'deformable-detr'].indexOf(modelName) >= 0) {
     modelFolder = 'tmp/';
   } else if (['phi3-int4'].indexOf(modelName) >= 0) {
     modelFolder = `${modelName}/`;
