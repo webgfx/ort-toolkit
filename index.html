@@ -247,7 +247,7 @@
         let kernelName = "";
         const kernelInfo = results[1].split("|");
         const opType = kernelInfo[1];
-        const programName = kernelInfo[3];
+        const programName = kernelInfo[kernelInfo.length - 1];
         if (opType == programName) {
           kernelName = opType;
         } else {
