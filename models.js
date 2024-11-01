@@ -775,7 +775,7 @@ function getGraphCaptureInfo(modelName) {
     'mobilenetv3-small-100',
     'mobilevit-small',
     'resnet50-v2-7',
-    'sam-b-encoder',
+    //'sam-b-encoder',
     'tinyyolov2-8',
     'vit-base-patch16-224',
     'vit-gpt2-image-captioning-encoder',
