@@ -116,6 +116,7 @@ const models = {
   'phi2-decoder-merged-f16': ['phi2-decoder-merged-f16'],
 
   'phi3-int4': ['phi3-int4'],
+  'phi3.5': ['phi3.5'],
 
   // https://huggingface.co/webml/models/tree/main
   'realesrgan-t1024': 'realesrgan',
@@ -574,7 +575,7 @@ function getFeedsInfo(modelName) {
     }
   }
 
-  if (inputs == 'phi3-int4') {
+  if (inputs == 'phi3-int4' || inputs == 'phi3.5') {
     const tokens = [24446n, 502n, 546n, 262n, 46371n, 286n, 27872n];
     getFeedInfo('input_ids', 'int64', new BigInt64Array(tokens), [1, tokens.length]);
     getFeedInfo('attention_mask', 'int64', 1n, [1, tokens.length]);
@@ -797,6 +798,7 @@ function getModelFolderInfo(modelName) {
   } else if (['phi3-int4'].indexOf(modelName) >= 0) {
     modelFolder = `${modelName}/`;
   }
+
   return modelFolder;
 }
 
