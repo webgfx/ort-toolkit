@@ -32,7 +32,7 @@
 
     // ep can be webgpu, wasm, webnn
     const ep = getParam("ep", "String", "webgpu");
-    const externalData = getParam("externalData", "String", false);
+    const externalData = getParam("externalData", "String", "");
     // 'verbose', 'info', 'warning', 'error', 'fatal'
     const logLevel = getParam("logLevel", "String", "warning");
     // Log severity level. Applies to session load, initialization, etc. 0:Verbose, 1:Info, 2:Warning. 3:Error, 4:Fatal. Default is 2.
