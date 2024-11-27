@@ -264,6 +264,8 @@ const models = {
   'distilbert': { 'input_ids': ['int64', 1n, [1, 50]], 'attention_mask': ['int64', 1n, [1, 50]] },
   'clip': { 'pixel_values': ['float32', 'random', [1, 3, 224, 224]] },
   'yolov8': { 'images': ['float32', 'random', [1, 3, 224, 224]] },
+  // https://huggingface.co/Xenova/yolos-tiny/resolve/main/onnx/model.onnx?download=true
+  'yolos-tiny': { 'pixel_values': ['float32', 'random', [1, 3, 1280, 720]] },
 };
 
 const modelEpsilons = {
@@ -793,7 +795,7 @@ function getModelFolderInfo(modelName) {
   modelFolder = '';
   if (['sd-unet-f16', 'sd-vae-decoder-arthur', 'sd-vae-decoder-f16'].indexOf(modelName) >= 0) {
     modelFolder = 'private/';
-  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits', 'distilbert', 'clip', 'yolov8', 'deformable-detr'].indexOf(modelName) >= 0) {
+  } else if (['sam-b-vision-encoder', 'wav2vec2', 'vits', 'distilbert', 'clip', 'yolov8', 'deformable-detr', 'yolos-tiny'].indexOf(modelName) >= 0) {
     modelFolder = 'tmp/';
   } else if (['phi3-int4'].indexOf(modelName) >= 0) {
     modelFolder = `${modelName}/`;
