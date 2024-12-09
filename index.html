@@ -40,7 +40,7 @@
     // VLOG level if DEBUG build and session_log_severity_level is 0. Applies to session load, initialization, etc. Default is 0.
     const logVerbosityLevel = getParam("logVerbosityLevel", "Number", 0);
     const modelName = getParam("modelName", "String", "default");
-    let modelUrl = getParam("modelUrl", "String", "wp-27");
+    let modelUrl = getParam("modelUrl", "String", "webgfx-01");
     // basic, all, disabled, extended
     const optLevel = getParam("optLevel", "String", "all");
     const ortUrl = getParam("ortUrl", "String", "default");
@@ -185,8 +185,8 @@
         modelUrl = `https://huggingface.co/webai-community/models/resolve/main/${modelFolder}${modelName}.onnx`;
       } else if (modelUrl === "server") {
         modelUrl = `${window.location.origin}${window.location.pathname}models/${modelFolder}${modelName}.onnx`;
-      } else if (modelUrl === "wp-27") {
-        modelUrl = `https://wp-27.sh.intel.com/workspace/project/models/${modelFolder}${modelName}.onnx`;
+      } else if (modelUrl === "webgfx-01") {
+        modelUrl = `https://10.32.87.101/project/models/${modelFolder}${modelName}.onnx`;
       }
 
       ort.env.wasm.numThreads = wasmThreads; // By default, it's "min(4, ceil(cpu_core_num / 2))"
