@@ -5,7 +5,7 @@
   <p>Some parameters are supported in url, and you may use them as '?key0=value0&key1=value1...'. Supported parameters
     are:
   </p>
-  <p>category=webgpu|ort: The specific profiling data. Default is webgpu.</p>
+  <p>category=webgpu|ort|all: The specific profiling data. Default is webgpu.</p>
   <p>index: Run index. Default is 1.</p>
 
   <b>[Info]</b>
@@ -99,15 +99,14 @@
         webgpuProfilingData[runIndex].push([index++, ...webgpuProfilingDataFlat[i]]);
       }
 
-      if (categoryParam === 'webgpu') {
-        renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData[indexParam], 'WebGPU Aggregated Profiling Data');
+      if (categoryParam === 'webgpu' || categoryParam === 'all') {
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData[indexParam], 'WebGPU Aggregated Profiling Data');
         renderData(["Index", "Kernel", "Time (ms)", "Shape"], webgpuProfilingData[indexParam], 'WebGPU Profiling Data');
-      } else {
-        renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], ortProfilingData[indexParam], 'ORT Aggregated Profiling Data');
+      }
+      if (categoryParam === 'ort' || categoryParam === 'all') {
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], ortProfilingData[indexParam], 'ORT Aggregated Profiling Data');
         renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], ortProfilingData[indexParam], 'ORT Profiling Data');
       }
-
     }
-
   </script>
 </body>

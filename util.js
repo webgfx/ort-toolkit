@@ -341,7 +341,7 @@ function renderData(heads, data, title) {
   document.body.appendChild(document.createElement("p"));
 }
 
-function renderAggregatedProfiling(heads, data, title) {
+function renderAggregatedData(heads, data, title) {
   let kernelTime = {};
   for (let d of data) {
     let kernel = d[1];
@@ -383,4 +383,17 @@ function getParam(name, type, _default) {
   } else {
     return result;
   }
+}
+
+async function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.onload = resolve;
+    script.onerror = reject;
+    script.src = url;
+    if (url.startsWith("http")) {
+      script.crossOrigin = "anonymous";
+    }
+    document.body.append(script);
+  });
 }
