@@ -1,0 +1,113 @@
+<body id="drop-area">
+  <h1 align="center">ORT Profiling Analyzer</h1>
+  <b>[Usage]</b>
+  <p>Please drop your JSON file here</p>
+  <p>Some parameters are supported in url, and you may use them as '?key0=value0&key1=value1...'. Supported parameters
+    are:
+  </p>
+  <p>category=webgpu|ort: The specific profiling data. Default is webgpu.</p>
+  <p>index: Run index. Default is 1.</p>
+
+  <b>[Info]</b>
+  <p id="info"></p>
+  <link href="sortable.min.css" rel="stylesheet" />
+  <script src="sortable.min.js"></script>
+  <script src="util.js"></script>
+  <script>
+    "use strict";
+
+    const categoryParam = getParam("category", "String", "webgpu");
+    const indexParam = getParam("index", "Number", 1);
+
+    let runIndex;
+    let index;
+    let isNewRun;
+    let ortProfilingData;
+    let webgpuProfilingDataFlat;
+    let webgpuProfilingData;
+
+    const dropArea = document.getElementById('drop-area');
+
+    dropArea.addEventListener('dragover', (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    });
+
+    dropArea.addEventListener('drop', (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const file = event.dataTransfer.files[0];
+      readFile(file);
+    });
+
+    function readFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          runIndex = -1;
+          index = 0;
+          isNewRun = true;
+          ortProfilingData = [];
+          webgpuProfilingDataFlat = [];
+          webgpuProfilingData = [];
+          const jsonData = JSON.parse(e.target.result);
+          handleData(jsonData);
+        } catch (error) {
+          console.error('Error parsing JSON file:', error);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handleData(data) {
+      for (let line of data) {
+        if (line['cat'] === 'Session') {
+          isNewRun = true;
+          continue;
+        } else if (line['cat'] === 'Node') {
+          if (isNewRun) {
+            runIndex++;
+            isNewRun = false;
+            ortProfilingData.push([]);
+          }
+          ortProfilingData[runIndex].push([index++, line['name'].split('/').pop().split('_')[0], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
+        } else if (line['cat'] === 'Api') {
+          let names = line['name'].split('/').pop().split('&');
+          let kernelType = names[1];
+          let programName = names[2];
+          let kernelName;
+          if (kernelType === programName) {
+            kernelName = programName;
+          } else {
+            kernelName = `${kernelType}|${programName}`;
+          }
+          webgpuProfilingDataFlat.push([kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
+        }
+      }
+
+      document.getElementById('info').innerHTML = `Run Times: ${runIndex + 1}, Current Run: ${indexParam}`;
+
+      let countPerSession = webgpuProfilingDataFlat.length / (runIndex + 1);
+      runIndex = -1;
+      for (let i = 0; i < webgpuProfilingDataFlat.length; i++) {
+        if (i >= (runIndex + 1) * countPerSession) {
+          runIndex++;
+          webgpuProfilingData.push([]);
+          index = 0;
+        }
+        webgpuProfilingData[runIndex].push([index++, ...webgpuProfilingDataFlat[i]]);
+      }
+
+      if (categoryParam === 'webgpu') {
+        renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData[indexParam], 'WebGPU Aggregated Profiling Data');
+        renderData(["Index", "Kernel", "Time (ms)", "Shape"], webgpuProfilingData[indexParam], 'WebGPU Profiling Data');
+      } else {
+        renderAggregatedProfiling(["Kernel", "Time (ms)", "Percentage (%)"], ortProfilingData[indexParam], 'ORT Aggregated Profiling Data');
+        renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], ortProfilingData[indexParam], 'ORT Profiling Data');
+      }
+
+    }
+
+  </script>
+</body>

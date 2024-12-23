@@ -1,4 +1,8 @@
-﻿.sortable thead th:not(.no-sort) {
+﻿.highlight {
+  background-color: yellow;
+}
+
+.sortable thead th:not(.no-sort) {
     cursor: pointer
 }
 

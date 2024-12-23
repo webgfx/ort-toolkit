@@ -1,3 +1,5 @@
+const displayPrecision = 2;
+
 
 // Get model via Origin Private File System
 async function getOPFS(name, url, updateModel) {
@@ -254,4 +256,131 @@ function float16ToNumber(input) {
   const asFloat32 = dv.getFloat32(0, false);
 
   return asFloat32;
+}
+
+function renderData(heads, data, title) {
+  let row, th, td;
+
+  // title
+  let h = document.createElement("h3");
+  h.innerHTML = title;
+  h.align = "center";
+  document.body.appendChild(h);
+
+  // table
+  let table = document.createElement("table");
+  table.className = "sortable";
+  table.align = "center";
+  table.style.width = "80%";
+  table.setAttribute("border", "1");
+  document.body.appendChild(table);
+
+  // thead
+  let header = table.createTHead("thead");
+  row = header.insertRow(0);
+  row.style.fontWeight = "bold";
+  for (let head of heads) {
+    let th = document.createElement("th");
+    th.innerHTML = head;
+    row.appendChild(th);
+  }
+
+  // tbody
+  let tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  // rest of line
+  for (let i = 0; i < data.length; ++i) {
+    let rowInfo = data[i];
+    row = tbody.insertRow(i);
+    row.onclick = function () {
+      toggleClass(this, "highlight");
+    };
+    for (let j = 0; j < heads.length; j++) {
+      td = row.insertCell(j);
+      let cellInfo = rowInfo[j];
+      if (heads[j].startsWith("Time")) {
+        cellInfo = cellInfo.toFixed(displayPrecision);
+      }
+      td.innerHTML = cellInfo;
+    }
+  }
+
+  // tfoot
+  let needTfoot = false;
+  for (let i = 0; i < heads.length; ++i) {
+    if (heads[i].startsWith("Time")) {
+      needTfoot = true;
+      break;
+    }
+  }
+  if (needTfoot) {
+    let tfoot = document.createElement("tfoot");
+    table.appendChild(tfoot);
+    row = tfoot.insertRow(0);
+    row.style.fontWeight = "bold";
+    let sums = new Array(heads.length).fill("");
+    sums[0] = "Sum";
+    for (let i = 0; i < heads.length; ++i) {
+      if (!heads[i].startsWith("Time")) {
+        continue;
+      }
+
+      let sum = 0;
+      for (let j = 0; j < data.length; j++) {
+        sum += data[j][i];
+      }
+      sums[i] = sum.toFixed(displayPrecision);
+    }
+    for (let i = 0; i < heads.length; ++i) {
+      td = row.insertCell(i);
+      td.innerHTML = sums[i];
+    }
+  }
+
+  // blank line
+  document.body.appendChild(document.createElement("p"));
+}
+
+function renderAggregatedProfiling(heads, data, title) {
+  let kernelTime = {};
+  for (let d of data) {
+    let kernel = d[1];
+    if (!(kernel in kernelTime)) {
+      kernelTime[kernel] = d[2];
+    } else {
+      kernelTime[kernel] += d[2];
+    }
+  }
+  let totalTime = getSum(Object.values(kernelTime));
+  let keys = Object.keys(kernelTime);
+  let sortedKernelTime = keys.sort(function (a, b) {
+    return kernelTime[b] - kernelTime[a];
+  });
+  let sortedAggregatedData = [];
+  for (let kernel of sortedKernelTime) {
+    let time = kernelTime[kernel];
+    sortedAggregatedData.push([kernel, time, ((time / totalTime) * 100).toFixed(2)]);
+  }
+
+  renderData(heads, sortedAggregatedData, title);
+}
+
+function getParam(name, type, _default) {
+  name = name.replace(/[\[\]]/g, "\\$&");
+  let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)", "i");
+  let results = regex.exec(window.location.href);
+  if (!results || !results[2]) return _default;
+
+  const result = decodeURIComponent(results[2].replace(/\+/g, " "));
+  if (type === "Boolean") {
+    if (result === "true") {
+      return true;
+    } else if (result === "false") {
+      return false;
+    }
+  } else if (type === "Number") {
+    return parseInt(result);
+  } else {
+    return result;
+  }
 }
