@@ -71,7 +71,7 @@
             isNewRun = false;
             ortProfilingData.push([]);
           }
-          ortProfilingData[runIndex].push([index++, line['name'].split('/').pop().split('_')[0], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
+          ortProfilingData[runIndex].push([index++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
         } else if (line['cat'] === 'Api') {
           let names = line['name'].split('/').pop().split('&');
           let kernelType = names[1];
