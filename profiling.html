@@ -71,6 +71,9 @@
             isNewRun = false;
             ortProfilingData.push([]);
           }
+          if (!('provider' in line['args'])) {
+            continue;
+          }
           ortProfilingData[runIndex].push([index++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
         } else if (line['cat'] === 'Api') {
           let names = line['name'].split('/').pop().split('&');
