@@ -5,7 +5,6 @@
   <p>Some parameters are supported in url, and you may use them as '?key0=value0&key1=value1...'. Supported parameters
     are:
   </p>
-  <p>category=webgpu|ort|all: The specific profiling data. Default is webgpu.</p>
   <p>index: Run index. Default is 1.</p>
 
   <b>[Info]</b>
@@ -16,17 +15,17 @@
   <script>
     "use strict";
 
-    const categoryParam = getParam("category", "String", "webgpu");
-    const indexParam = getParam("index", "Number", 1);
-
-    let runIndex;
+    let cpuProfilingData;
+    let gpuProfilingData;
     let index;
-    let isNewRun;
-    let ortProfilingData;
-    let webgpuProfilingDataFlat;
-    let webgpuProfilingData;
+    let sessionCount;
+    let sessionStartKernelId;
 
     const dropArea = document.getElementById('drop-area');
+    const indexParam = getParam("index", "Number", 1);
+    const reNative = /\[.*\] "(\{"cat".*)", source:.*/;
+    const reWeb = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/;
+    const unitConversionFactor = 1000000;
 
     dropArea.addEventListener('dragover', (event) => {
       event.stopPropagation();
@@ -54,31 +53,46 @@
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          runIndex = -1;
+          cpuProfilingData = [];
+          gpuProfilingData = [];
           index = 0;
-          isNewRun = true;
-          ortProfilingData = [];
-          webgpuProfilingDataFlat = [];
-          webgpuProfilingData = [];
-          let jsonData;
+          sessionCount = 0;
+          sessionStartKernelId = '';
+
+          let dataSource = '';
+
           if (isJson(e.target.result)) {
-            console.log('The original file is in json format');
-            jsonData = e.target.result;
+            dataSource = 'native';
+            handleNativeData(e.target.result);
           } else {
-            console.log('The original file is not in json format, and will try to reformat it');
-            let new_lines = ['['];
             let lines = e.target.result.split('\n');
-            let re = /\[.*\] "(\{"cat".*)", source:.*/;
+            let newLines = [];
+
             for (let line of lines) {
-              let match = line.match(re);
-              if (match) {
-                new_lines.push(match[1]);
+              let matchNative = line.match(reNative);
+              let matchWeb = line.match(reWeb);
+
+              if (matchNative) {
+                if (dataSource === '') {
+                  dataSource = 'native';
+                }
+                newLines.push(matchNative[1]);
+              } else if (matchWeb) {
+                if (dataSource === '') {
+                  dataSource = 'web';
+                }
+                newLines.push(matchWeb[0]);
               }
             }
-            new_lines.push(']');
-            jsonData = new_lines.join('');
+
+            if (dataSource === 'native') {
+              newLines.unshift('[');
+              newLines.push(']');
+              handleNativeData(JSON.parse(newLines.join('')));
+            } else {
+              handleWebData(newLines);
+            }
           }
-          handleData(JSON.parse(jsonData));
         } catch (error) {
           console.error('Could not parse the file as json:', error);
         }
@@ -86,21 +100,23 @@
       reader.readAsText(file);
     }
 
-    function handleData(data) {
+    function handleNativeData(data) {
+      let isNewSession = false;
+      let gpuProfilingDataFlat = [];
       for (let line of data) {
         if (line['cat'] === 'Session') {
-          isNewRun = true;
+          isNewSession = true;
           continue;
         } else if (line['cat'] === 'Node') {
-          if (isNewRun) {
-            runIndex++;
-            isNewRun = false;
-            ortProfilingData.push([]);
+          if (isNewSession) {
+            isNewSession = false;
+            sessionCount++;
+            cpuProfilingData.push([]);
           }
           if (!('provider' in line['args'])) {
             continue;
           }
-          ortProfilingData[runIndex].push([index++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
+          cpuProfilingData[sessionCount - 1].push([index++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
         } else if (line['cat'] === 'Api') {
           let names = line['name'].split('/').pop().split('&');
           let kernelType = names[1];
@@ -111,30 +127,70 @@
           } else {
             kernelName = `${kernelType}|${programName}`;
           }
-          webgpuProfilingDataFlat.push([kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
+          gpuProfilingDataFlat.push([kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
         }
       }
 
-      document.getElementById('info').innerHTML = `Run Times: ${runIndex + 1}, Current Run: ${indexParam}`;
-
-      let countPerSession = webgpuProfilingDataFlat.length / (runIndex + 1);
-      runIndex = -1;
-      for (let i = 0; i < webgpuProfilingDataFlat.length; i++) {
-        if (i >= (runIndex + 1) * countPerSession) {
-          runIndex++;
-          webgpuProfilingData.push([]);
+      let sessionIndex = -1;
+      let countPerSession = gpuProfilingDataFlat.length / sessionCount;
+      for (let i = 0; i < gpuProfilingDataFlat.length; i++) {
+        if (i >= sessionIndex * countPerSession) {
+          sessionIndex++;
+          gpuProfilingData.push([]);
           index = 0;
         }
-        webgpuProfilingData[runIndex].push([index++, ...webgpuProfilingDataFlat[i]]);
+        gpuProfilingData[sessionIndex].push([index++, ...gpuProfilingDataFlat[i]]);
       }
 
-      if (categoryParam === 'webgpu' || categoryParam === 'all') {
-        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], webgpuProfilingData[indexParam], 'WebGPU Aggregated Profiling Data');
-        renderData(["Index", "Kernel", "Time (ms)", "Shape"], webgpuProfilingData[indexParam], 'WebGPU Profiling Data');
+      displayData();
+    }
+
+    function handleWebData(lines) {
+      for (let line of lines) {
+        let matchWeb = line.match(reWeb);
+
+        let kernelName = "";
+        const kernelInfo = matchWeb[1].split("|");
+        const kernelId = kernelInfo[0];
+        if (sessionStartKernelId === '') {
+          sessionStartKernelId = kernelId;
+          gpuProfilingData.push([]);
+        }
+        if (kernelId === sessionStartKernelId) {
+          sessionCount++;
+          gpuProfilingData.push([]);
+        }
+        const opType = kernelInfo[1];
+        const programName = kernelInfo[kernelInfo.length - 1];
+        if (opType == programName) {
+          kernelName = opType;
+        } else {
+          kernelName = `${opType}|${programName}`;
+        }
+        gpuProfilingData[sessionCount - 1].push([index++, kernelName, parseInt(matchWeb[3]) / unitConversionFactor, matchWeb[2]]);
       }
-      if (categoryParam === 'ort' || categoryParam === 'all') {
-        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], ortProfilingData[indexParam], 'ORT Aggregated Profiling Data');
-        renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], ortProfilingData[indexParam], 'ORT Profiling Data');
+      displayData();
+    }
+
+    function displayData() {
+      const replacables = document.querySelectorAll('.replacable');
+      replacables.forEach(replacable => {
+        replacable.remove();
+      });
+
+      document.getElementById('info').innerHTML = `Run Times: ${sessionCount}, Current Run: ${indexParam}`;
+
+      if (gpuProfilingData.length > 0) {
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], gpuProfilingData[indexParam], 'GPU Aggregated Profiling Data');
+      }
+      if (cpuProfilingData.length > 0) {
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], cpuProfilingData[indexParam], 'CPU Aggregated Profiling Data');
+      }
+      if (gpuProfilingData.length > 0) {
+        renderData(["Index", "Kernel", "Time (ms)", "Shape"], gpuProfilingData[indexParam], 'GPU Profiling Data');
+      }
+      if (cpuProfilingData.length > 0) {
+        renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], cpuProfilingData[indexParam], 'CPU Profiling Data');
       }
     }
   </script>

@@ -265,11 +265,12 @@ function renderData(heads, data, title) {
   let h = document.createElement("h3");
   h.innerHTML = title;
   h.align = "center";
+  h.className = "replacable";
   document.body.appendChild(h);
 
   // table
   let table = document.createElement("table");
-  table.className = "sortable";
+  table.className = "sortable replacable";
   table.align = "center";
   table.style.width = "80%";
   table.setAttribute("border", "1");
