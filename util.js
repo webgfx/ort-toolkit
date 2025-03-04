@@ -265,12 +265,12 @@ function renderData(heads, data, title) {
   let h = document.createElement("h3");
   h.innerHTML = title;
   h.align = "center";
-  h.className = "replacable";
+  h.className = "swap";
   document.body.appendChild(h);
 
   // table
   let table = document.createElement("table");
-  table.className = "sortable replacable";
+  table.className = "sortable swap";
   table.align = "center";
   table.style.width = "80%";
   table.setAttribute("border", "1");
@@ -342,16 +342,20 @@ function renderData(heads, data, title) {
   document.body.appendChild(document.createElement("p"));
 }
 
-function renderAggregatedData(heads, data, title) {
+function renderAggregatedData(heads, data, validIndex, title) {
   let kernelTime = {};
-  for (let d of data) {
-    let kernel = d[1];
-    if (!(kernel in kernelTime)) {
-      kernelTime[kernel] = d[2];
-    } else {
-      kernelTime[kernel] += d[2];
+
+  for (let i = 0; i < validIndex.length; i++) {
+    for (let d of data[validIndex[i]]) {
+      let kernel = d[1];
+      if (!(kernel in kernelTime)) {
+        kernelTime[kernel] = d[2];
+      } else {
+        kernelTime[kernel] += d[2];
+      }
     }
   }
+
   let totalTime = getSum(Object.values(kernelTime));
   let keys = Object.keys(kernelTime);
   let sortedKernelTime = keys.sort(function (a, b) {

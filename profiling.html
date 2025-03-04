@@ -1,14 +1,12 @@
 <body id="drop-area">
   <h1 align="center">ORT Profiling Analyzer</h1>
-  <b>[Usage]</b>
-  <p>Please drop your JSON file here</p>
-  <p>Some parameters are supported in url, and you may use them as '?key0=value0&key1=value1...'. Supported parameters
-    are:
-  </p>
-  <p>index: Run index. Default is 1.</p>
-
-  <b>[Info]</b>
-  <p id="info"></p>
+  <div align="center">
+    <b>Run index (e.g., 1 or 2-3)</b>
+    <input type="text" id="index" value="1"></input>
+    <p>Usage: Please drop your file here</p>
+    <p>[Info]</p>
+    <p id="info"></p>
+  </div>
   <link href="sortable.min.css" rel="stylesheet" />
   <script src="sortable.min.js"></script>
   <script src="util.js"></script>
@@ -17,12 +15,12 @@
 
     let cpuProfilingData;
     let gpuProfilingData;
-    let index;
+    let indexInSession;
     let sessionCount;
     let sessionStartKernelId;
 
     const dropArea = document.getElementById('drop-area');
-    const indexParam = getParam("index", "Number", 1);
+    const indexInput = document.getElementById('index');
     const reNative = /\[.*\] "(\{"cat".*)", source:.*/;
     const reWeb = /\[profiling\] kernel \"(.*)\" (input.*), execution time\: (\d+) ns/;
     const unitConversionFactor = 1000000;
@@ -40,6 +38,10 @@
       readFile(file);
     });
 
+    indexInput.addEventListener('change', (event) => {
+      displayData();
+    });
+
     function isJson(str) {
       try {
         JSON.parse(str);
@@ -55,7 +57,7 @@
         try {
           cpuProfilingData = [];
           gpuProfilingData = [];
-          index = 0;
+          indexInSession = 0;
           sessionCount = 0;
           sessionStartKernelId = '';
 
@@ -63,7 +65,7 @@
 
           if (isJson(e.target.result)) {
             dataSource = 'native';
-            handleNativeData(e.target.result);
+            handleNativeData(JSON.parse(e.target.result));
           } else {
             let lines = e.target.result.split('\n');
             let newLines = [];
@@ -112,11 +114,12 @@
             isNewSession = false;
             sessionCount++;
             cpuProfilingData.push([]);
+            indexInSession = 0;
           }
           if (!('provider' in line['args'])) {
             continue;
           }
-          cpuProfilingData[sessionCount - 1].push([index++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
+          cpuProfilingData[sessionCount - 1].push([indexInSession++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
         } else if (line['cat'] === 'Api') {
           let names = line['name'].split('/').pop().split('&');
           let kernelType = names[1];
@@ -137,9 +140,9 @@
         if (i >= sessionIndex * countPerSession) {
           sessionIndex++;
           gpuProfilingData.push([]);
-          index = 0;
+          indexInSession = 0;
         }
-        gpuProfilingData[sessionIndex].push([index++, ...gpuProfilingDataFlat[i]]);
+        gpuProfilingData[sessionIndex].push([indexInSession++, ...gpuProfilingDataFlat[i]]);
       }
 
       displayData();
@@ -158,6 +161,7 @@
         }
         if (kernelId === sessionStartKernelId) {
           sessionCount++;
+          indexInSession = 0;
           gpuProfilingData.push([]);
         }
         const opType = kernelInfo[1];
@@ -167,30 +171,44 @@
         } else {
           kernelName = `${opType}|${programName}`;
         }
-        gpuProfilingData[sessionCount - 1].push([index++, kernelName, parseInt(matchWeb[3]) / unitConversionFactor, matchWeb[2]]);
+        gpuProfilingData[sessionCount - 1].push([indexInSession++, kernelName, parseInt(matchWeb[3]) / unitConversionFactor, matchWeb[2]]);
       }
       displayData();
     }
 
     function displayData() {
-      const replacables = document.querySelectorAll('.replacable');
-      replacables.forEach(replacable => {
-        replacable.remove();
+      const swaps = document.querySelectorAll('.swap');
+      swaps.forEach(swap => {
+        swap.remove();
       });
 
-      document.getElementById('info').innerHTML = `Run Times: ${sessionCount}, Current Run: ${indexParam}`;
+      document.getElementById('info').innerHTML = `Run Times: ${sessionCount}`;
+
+      let validIndex = [];
+      const indexToDisplay = indexInput.value;
+      if (indexToDisplay.includes('-')) {
+        let indexMinMax = indexToDisplay.split('-');
+        let min = parseInt(indexMinMax[0]);
+        let max = parseInt(indexMinMax[1]);
+
+        for (let i = min; i <= max; i++) {
+          validIndex.push(i);
+        }
+      } else {
+        validIndex.push(parseInt(indexToDisplay));
+      }
 
       if (gpuProfilingData.length > 0) {
-        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], gpuProfilingData[indexParam], 'GPU Aggregated Profiling Data');
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], gpuProfilingData, validIndex, 'GPU Aggregated Profiling Data');
       }
       if (cpuProfilingData.length > 0) {
-        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], cpuProfilingData[indexParam], 'CPU Aggregated Profiling Data');
+        renderAggregatedData(["Kernel", "Time (ms)", "Percentage (%)"], cpuProfilingData, validIndex, 'CPU Aggregated Profiling Data');
       }
-      if (gpuProfilingData.length > 0) {
-        renderData(["Index", "Kernel", "Time (ms)", "Shape"], gpuProfilingData[indexParam], 'GPU Profiling Data');
+      if (gpuProfilingData.length > 0 && validIndex.length <= 1) {
+        renderData(["Index", "Kernel", "Time (ms)", "Shape"], gpuProfilingData[validIndex[0]], 'GPU Profiling Data');
       }
-      if (cpuProfilingData.length > 0) {
-        renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], cpuProfilingData[indexParam], 'CPU Profiling Data');
+      if (cpuProfilingData.length > 0 && validIndex.length <= 1) {
+        renderData(["Index", "Kernel", "Time (ms)", "Shape", "Provider"], cpuProfilingData[validIndex[0]], 'CPU Profiling Data');
       }
     }
   </script>
