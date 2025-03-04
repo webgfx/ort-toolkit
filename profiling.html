@@ -41,6 +41,15 @@
       readFile(file);
     });
 
+    function isJson(str) {
+      try {
+        JSON.parse(str);
+      } catch (e) {
+        return false;
+      }
+      return true;
+    }
+
     function readFile(file) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -51,10 +60,27 @@
           ortProfilingData = [];
           webgpuProfilingDataFlat = [];
           webgpuProfilingData = [];
-          const jsonData = JSON.parse(e.target.result);
-          handleData(jsonData);
+          let jsonData;
+          if (isJson(e.target.result)) {
+            console.log('The original file is in json format');
+            jsonData = e.target.result;
+          } else {
+            console.log('The original file is not in json format, and will try to reformat it');
+            let new_lines = ['['];
+            let lines = e.target.result.split('\n');
+            let re = /\[.*\] "(\{"cat".*)", source:.*/;
+            for (let line of lines) {
+              let match = line.match(re);
+              if (match) {
+                new_lines.push(match[1]);
+              }
+            }
+            new_lines.push(']');
+            jsonData = new_lines.join('');
+          }
+          handleData(JSON.parse(jsonData));
         } catch (error) {
-          console.error('Error parsing JSON file:', error);
+          console.error('Could not parse the file as json:', error);
         }
       };
       reader.readAsText(file);
