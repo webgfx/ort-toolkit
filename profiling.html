@@ -1,7 +1,7 @@
 <body id="drop-area">
   <h1 align="center">ORT Profiling Analyzer</h1>
   <div align="center">
-    <b>Run index (e.g., 1 or 2-3)</b>
+    <b>Run index (e.g., 0 or 2-3)</b>
     <input type="text" id="index" value="1"></input>
     <p>Usage: Please drop your file here</p>
     <p>[Info]</p>
@@ -104,17 +104,22 @@
 
     function handleNativeData(data) {
       let isNewSession = false;
-      let gpuProfilingDataFlat = [];
+      let gpuProfilingSessionStart;
+      let successiveCatSessionCount = 0;
       for (let line of data) {
         if (line['cat'] === 'Session') {
-          isNewSession = true;
+          successiveCatSessionCount++;
+          if (successiveCatSessionCount > 1) {
+            isNewSession = true;
+          }
           continue;
         } else if (line['cat'] === 'Node') {
           if (isNewSession) {
             isNewSession = false;
+            successiveCatSessionCount = 0;
             sessionCount++;
-            cpuProfilingData.push([]);
             indexInSession = 0;
+            cpuProfilingData.push([]);
           }
           if (!('provider' in line['args'])) {
             continue;
@@ -122,6 +127,15 @@
           cpuProfilingData[sessionCount - 1].push([indexInSession++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
         } else if (line['cat'] === 'Api') {
           let names = line['name'].split('/').pop().split('&');
+          if (gpuProfilingSessionStart === undefined) {
+            gpuProfilingSessionStart = names[0];
+            sessionCount = 0;
+          }
+          if (names[0] === gpuProfilingSessionStart) {
+            sessionCount++;
+            indexInSession = 0;
+            gpuProfilingData.push([]);
+          }
           let kernelType = names[1];
           let programName = names[2];
           let kernelName;
@@ -130,21 +144,9 @@
           } else {
             kernelName = `${kernelType}|${programName}`;
           }
-          gpuProfilingDataFlat.push([kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
+          gpuProfilingData[sessionCount - 1].push([indexInSession++, kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
         }
       }
-
-      let sessionIndex = -1;
-      let countPerSession = gpuProfilingDataFlat.length / sessionCount;
-      for (let i = 0; i < gpuProfilingDataFlat.length; i++) {
-        if (i >= sessionIndex * countPerSession) {
-          sessionIndex++;
-          gpuProfilingData.push([]);
-          indexInSession = 0;
-        }
-        gpuProfilingData[sessionIndex].push([indexInSession++, ...gpuProfilingDataFlat[i]]);
-      }
-
       displayData();
     }
 
