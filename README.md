@@ -22,13 +22,13 @@ Start Chrome with "--enable-dawn-features=allow_unsafe_apis,use_dxc --enable-fea
 - --enable-dawn-features=use_dxc: Enable DXC instead of FXC for WGSL compilation
 - --enable-features=SharedArrayBuffer: Enable SharedArrayBuffer otherwise you may get 'TypeError: Cannot convert a BigInt value to a number'
 
-Example: https://webatintel.github.io/ort-toolkit/?tasks=performance&ep=webgpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
+Example: https://webgfx.github.io/ort-toolkit/?tasks=performance&ep=webgpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
 
 [WebNN]
 
 Start Chrome with "--enable-features=MachineLearningNeuralNetworkService --enable-experimental-web-platform-features --disable-gpu-sandbox"
 
-Example: https://webatintel.github.io/ort-toolkit/?tasks=performance&ep=webnn&device=gpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
+Example: https://webgfx.github.io/ort-toolkit/?tasks=performance&ep=webnn&device=gpu&modelName=mobilenetv2-12&modelUrl=hf&enableReadback=true
 
 ## Usage
 
@@ -40,8 +40,8 @@ Some parameters are supported in url, and you may use them as 'index.html?key0=v
 - ep: execution provider. E.g., webgpu, wasm
 - layout=[NCHW|NHWC]. NHWC is the default.
 - modelName: name of modelName. E.g., mobilenetv2-12
-- modelUrl=[hf|server|wp-27|[url]]. Note that if you provide the url, you may fail to execute the modelName as the inputs are not defined well.
-- ortUrl: ort url. Example: ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime or ortUrl=gh/20231129
+- modelUrl=[hf|server|[url]]. Note that if you provide the url, you may fail to execute the modelName as the inputs are not defined well.
+- ortUrl: ort url. Example: ortUrl=https://xxx/workspace/project/onnxruntime or ortUrl=gh/20231129
 - runTimes: Run times
 - task: task to run, while the candidates are 'conformance', 'performance', 'ortProfiling', 'webgpuProfiling'.
 - updateModel=[true|false]. False (default) means no update.
@@ -53,4 +53,4 @@ Some parameters are supported in url, and you may use them as 'index.html?key0=v
 
 - Conformance
 
-  https://wp-27.sh.intel.com/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://wp-27.sh.intel.com/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
+  https://xxx/workspace/project/onnxruntime/ort-toolkit/?tasks=conformance&modelName=mobilenetv2-12&ep=webgpu&ortUrl=https://xxx/workspace/project/onnxruntime&warmupTimes=10&runTimes=10
