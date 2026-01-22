@@ -1,4 +1,4 @@
-const displayPrecision = 2;
+const precision = getParam("precision", "Number", 2);
 
 
 // Get model via Origin Private File System
@@ -300,7 +300,7 @@ function renderData(heads, data, title) {
       td = row.insertCell(j);
       let cellInfo = rowInfo[j];
       if (heads[j].startsWith("Time")) {
-        cellInfo = cellInfo.toFixed(displayPrecision);
+        cellInfo = cellInfo.toFixed(precision);
       }
       td.innerHTML = cellInfo;
     }
@@ -330,7 +330,7 @@ function renderData(heads, data, title) {
       for (let j = 0; j < data.length; j++) {
         sum += data[j][i];
       }
-      sums[i] = sum.toFixed(displayPrecision);
+      sums[i] = sum.toFixed(precision);
     }
     for (let i = 0; i < heads.length; ++i) {
       td = row.insertCell(i);
@@ -364,7 +364,7 @@ function renderAggregatedData(heads, data, validIndex, title) {
   let sortedAggregatedData = [];
   for (let kernel of sortedKernelTime) {
     let time = kernelTime[kernel];
-    sortedAggregatedData.push([kernel, time, ((time / totalTime) * 100).toFixed(2)]);
+    sortedAggregatedData.push([kernel, time, ((time / totalTime) * 100).toFixed(precision)]);
   }
 
   renderData(heads, sortedAggregatedData, title);
