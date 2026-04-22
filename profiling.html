@@ -148,46 +148,28 @@
             cpuProfilingData[currentRunIndex].push([nodeIndex++, line['args']['op_name'], line['dur'] / 1000, `input_type_shape: ${JSON.stringify(line['args']['input_type_shape'])}, output_type_shape: ${JSON.stringify(line['args']['output_type_shape'])}`, line['args']['provider'].replace('ExecutionProvider', '')]);
           }
         } else if (line['cat'] === 'Api') {
-          // Simple approach: if only one run, put all GPU data in one run
-          if (sessionCount === 1) {
-            // Single run case: just add all GPU data to run 0
-            if (gpuProfilingData.length === 0) {
-              gpuProfilingData.push([]);
-              indexInSession = 0;
-            }
-            let names = line['name'].split('/').pop().split('&');
-            let kernelType = names[1];
-            let programName = names[2];
-            let kernelName;
-            if (kernelType === programName) {
-              kernelName = programName;
-            } else {
-              kernelName = `${kernelType}|${programName}`;
-            }
-            gpuProfilingData[0].push([indexInSession++, kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
-          } else {
-            // Multiple runs case: use original kernel-pattern-based approach
-            let names = line['name'].split('/').pop().split('&');
-            if (gpuProfilingRunStart === undefined) {
-              gpuProfilingRunStart = names[0];
-              gpuRunCount = 1;
-              indexInSession = 0;
-              gpuProfilingData.push([]);
-            } else if (names[0] === gpuProfilingRunStart && gpuProfilingData[gpuRunCount - 1].length > 0) {
-              gpuRunCount++;
-              indexInSession = 0;
-              gpuProfilingData.push([]);
-            }
-            let kernelType = names[1];
-            let programName = names[2];
-            let kernelName;
-            if (kernelType === programName) {
-              kernelName = programName;
-            } else {
-              kernelName = `${kernelType}|${programName}`;
-            }
-            gpuProfilingData[gpuRunCount - 1].push([indexInSession++, kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
+          let names = line['name'].split('/').pop().split('&');
+          // Use full name as run boundary marker instead of just names[0]
+          let fullName = line['name'];
+          if (gpuProfilingRunStart === undefined) {
+            gpuProfilingRunStart = fullName;
+            gpuRunCount = 1;
+            indexInSession = 0;
+            gpuProfilingData.push([]);
+          } else if (fullName === gpuProfilingRunStart && gpuProfilingData[gpuRunCount - 1].length > 0) {
+            gpuRunCount++;
+            indexInSession = 0;
+            gpuProfilingData.push([]);
           }
+          let kernelType = names[1];
+          let programName = names[2];
+          let kernelName;
+          if (kernelType === programName) {
+            kernelName = programName;
+          } else {
+            kernelName = `${kernelType}|${programName}`;
+          }
+          gpuProfilingData[gpuRunCount - 1].push([indexInSession++, kernelName, line['dur'] / 1000, JSON.stringify(line['args']['shapes'])]);
         }
       }
       displayData();
